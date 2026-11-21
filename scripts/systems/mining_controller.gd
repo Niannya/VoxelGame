@@ -11,7 +11,7 @@ const CHARGE_FILL := Color(1.0, 0.24, 0.09, 0.40)
 @export var world_path: NodePath
 @export var hud_path: NodePath
 @export var max_distance: float = 18.0
-@export var break_time: float = 0.55
+@export var break_time: float = 0.4
 
 var total_broken: int = 0
 var broken_by_type: Dictionary = {}

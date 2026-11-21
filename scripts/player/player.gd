@@ -10,8 +10,18 @@ extends CharacterBody3D
 @export var gravity: float = 24.0
 ## 起跳速度按「至少能跳上一格方块」定：v²/(2g) = 7.5²/48 ≈ 1.17 格
 @export var jump_velocity: float = 7.5
+## 绑定移动平台后，玩家只能在平台顶面范围内活动
+@export var platform_path: NodePath
+@export var platform_margin: float = 0.5
 
 @onready var visual: Node3D = $Visual
+
+var _platform: Node3D
+
+
+func _ready() -> void:
+	if not platform_path.is_empty():
+		_platform = get_node_or_null(platform_path)
 
 
 func _physics_process(delta: float) -> void:
@@ -37,3 +47,18 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= gravity * delta
 
 	move_and_slide()
+	_clamp_to_platform()
+
+
+func _clamp_to_platform() -> void:
+	## 把玩家夹在平台顶面内。平台自己会带着玩家走（移动平台速度传递），
+	## 这里只负责不让玩家跑出平台边缘。
+	if _platform == null:
+		return
+
+	var hw: float = _platform.deck_half_width - platform_margin
+	var hd: float = _platform.deck_half_depth - platform_margin
+	var local := _platform.to_local(global_position)
+	local.x = clampf(local.x, -hw, hw)
+	local.z = clampf(local.z, -hd, hd)
+	global_position = _platform.to_global(local)

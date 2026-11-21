@@ -1,24 +1,29 @@
 extends Node3D
-## 运行时体素世界：持有方块网格数据、渲染用 MultiMesh、以及可破坏的碰撞体。
-## 与烘焙版矿洞不同，这里每块方块都有坐标可查，才能做射线拾取和破坏。
+## 运行时体素世界。
+## 结构：起始空腔（矿车停靠）+ 前方整段矿道被矿体填满，必须由玩家挖开。
+## 不生成侧墙，避免俯视角下遮挡视野。
+## 渲染分两层 MultiMesh：实体层（不透明）与虚化层（半透明），
+## 靠近矿车的未挖方块切到虚化层，免得挡住后面的矿。
 
 const BLOCK := 1.0
+## 零缩放 + 挪到远处，等价于隐藏该实例
+var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9999, 0))
 
 @export var rng_seed: int = 20261120
-@export var interior_half_width: int = 4   # 内部半宽（块），4 => 内部 9 格宽
-@export var interior_height: int = 6       # 内部高度（块）
+@export var interior_half_width: int = 4   # 内部半宽（块），4 => 9 格宽
+@export var interior_height: int = 6       # 填矿高度（块）
 @export var tunnel_length: int = 40        # 纵深（块）
-@export var z_start: int = 6               # 起点 z
+@export var z_start: int = 6               # 起始空腔尾端 z
+@export var chamber_length: int = 7        # 起始空腔长度
+@export var ghost_radius: float = 4.0      # 矿车前后多远的未挖方块要虚化
 
 signal block_broken(pos: Vector3i, key: String)
 
-var grid: Dictionary = {}                  # Vector3i -> String（方块类型）
-var _instance_index: Dictionary = {}       # Vector3i -> int（在对应 MultiMesh 里的下标）
-var _multimeshes: Dictionary = {}          # key -> MultiMesh
-var _collisions: Dictionary = {}           # Vector3i -> CollisionShape3D
-var _mats: Dictionary = {}
-var _shared_box_shape: BoxShape3D
-var _body: StaticBody3D
+var grid: Dictionary = {}                  # Vector3i -> String
+var _index: Dictionary = {}                # Vector3i -> int（两层 MultiMesh 共用下标）
+var _solid: Dictionary = {}                # key -> MultiMesh
+var _ghost: Dictionary = {}                # key -> MultiMesh
+var _ghosted: Dictionary = {}              # Vector3i -> true
 var _rng := RandomNumberGenerator.new()
 var _built := false
 
@@ -35,32 +40,36 @@ func generate() -> void:
 		return
 	_built = true
 	_rng.seed = rng_seed
-
-	_make_materials()
 	_fill_grid()
 	_build_visuals()
-	_build_collision()
+
+
+func chamber_end_z() -> int:
+	return z_start - chamber_length + 1
 
 
 func _fill_grid() -> void:
 	var hw := interior_half_width
 	var h := interior_height
 	var z_lo := z_start - tunnel_length + 1
+	var chamber_end := chamber_end_z()
 
+	# 地板两层，贯穿全程
 	for k in range(z_lo, z_start + 1):
-		for i in range(-hw - 1, hw + 2):
-			# 地板铺两层：挖穿第一层能看见下面的岩层，而不是直接露出虚空
+		for i in range(-hw, hw + 1):
 			grid[Vector3i(i, -1, k)] = _pick(0.05)
 			grid[Vector3i(i, -2, k)] = _pick(0.05)
-		for j in range(-2, h + 1):
-			grid[Vector3i(-hw - 1, j, k)] = _pick(0.11)
-			grid[Vector3i(hw + 1, j, k)] = _pick(0.11)
 
-	# 尽头待挖的矿壁
-	for dz in [1, 2]:
-		for i in range(-hw - 1, hw + 2):
-			for j in range(-2, h + 1):
-				grid[Vector3i(i, j, z_lo - dz)] = _pick(0.22)
+	# 空腔之后整段堵死，玩家必须自己挖开
+	for k in range(z_lo, chamber_end):
+		for i in range(-hw, hw + 1):
+			for j in range(0, h):
+				grid[Vector3i(i, j, k)] = _pick(0.12)
+
+	# 空腔尾墙，避免回望看到虚空
+	for i in range(-hw, hw + 1):
+		for j in range(-2, h):
+			grid[Vector3i(i, j, z_start + 1)] = _pick(0.08)
 
 
 func _pick(ore_chance: float) -> String:
@@ -76,30 +85,7 @@ func _pick(ore_chance: float) -> String:
 	return "stone_a" if _rng.randf() < 0.68 else "stone_b"
 
 
-func _make_materials() -> void:
-	_mats["stone_a"] = _mat(Color(0.335, 0.330, 0.355), 0.95, 0.0)
-	_mats["stone_b"] = _mat(Color(0.272, 0.267, 0.296), 0.95, 0.0)
-	_mats["gold"] = _mat(Color(0.80, 0.60, 0.15), 0.30, 0.70, Color(0.55, 0.38, 0.05), 0.35)
-	_mats["quartz"] = _mat(Color(0.85, 0.86, 0.90), 0.20, 0.10, Color(0.32, 0.34, 0.42), 0.25)
-	_mats["diamond"] = _mat(Color(0.38, 0.78, 0.88), 0.12, 0.30, Color(0.10, 0.38, 0.48), 0.55)
-	_mats["emerald"] = _mat(Color(0.25, 0.68, 0.42), 0.18, 0.25, Color(0.05, 0.30, 0.15), 0.45)
-
-
-func _mat(albedo: Color, roughness: float, metallic: float,
-		emission: Color = Color.BLACK, emission_energy: float = 0.0) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = albedo
-	m.roughness = roughness
-	m.metallic = metallic
-	if emission_energy > 0.0:
-		m.emission_enabled = true
-		m.emission = emission
-		m.emission_energy_multiplier = emission_energy
-	return m
-
-
 func _build_visuals() -> void:
-	# 先按类型分组，才能一次分配固定 instance_count
 	var by_key: Dictionary = {}
 	for pos in grid:
 		var key: String = grid[pos]
@@ -109,78 +95,146 @@ func _build_visuals() -> void:
 
 	for key in by_key:
 		var positions: Array = by_key[key]
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		var box := BoxMesh.new()
-		box.size = Vector3(BLOCK, BLOCK, BLOCK)
-		box.material = _mats[key]
-		mm.mesh = box
-		mm.instance_count = positions.size()
-		for idx in positions.size():
-			var p: Vector3i = positions[idx]
-			mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(p) * BLOCK))
-			_instance_index[p] = idx
-		var inst := MultiMeshInstance3D.new()
-		inst.name = "Blocks_" + key
-		inst.multimesh = mm
-		add_child(inst)
-		_multimeshes[key] = mm
+		_solid[key] = _make_multimesh(positions, key, false)
+		_ghost[key] = _make_multimesh(positions, key, true)
+
+		var s := MultiMeshInstance3D.new()
+		s.name = "Solid_" + key
+		s.multimesh = _solid[key]
+		add_child(s)
+
+		var g := MultiMeshInstance3D.new()
+		g.name = "Ghost_" + key
+		g.multimesh = _ghost[key]
+		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(g)
 
 
-func _build_collision() -> void:
-	_shared_box_shape = BoxShape3D.new()
-	_shared_box_shape.size = Vector3(BLOCK, BLOCK, BLOCK)
+func _make_multimesh(positions: Array, key: String, ghost: bool) -> MultiMesh:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	var box := BoxMesh.new()
+	box.size = Vector3(BLOCK, BLOCK, BLOCK)
+	box.material = _material(key, ghost)
+	mm.mesh = box
+	mm.instance_count = positions.size()
 
-	_body = StaticBody3D.new()
-	_body.name = "BlockCollision"
-	add_child(_body)
+	for idx in positions.size():
+		var p: Vector3i = positions[idx]
+		mm.set_instance_transform(idx, _hidden_xf if ghost else Transform3D(Basis.IDENTITY, Vector3(p) * BLOCK))
+		_index[p] = idx
+	return mm
 
-	# 只给「露在空气里」的方块建碰撞体，内部的看不见也摸不到
+
+func _base_color(key: String) -> Color:
+	match key:
+		"gold":
+			return Color(0.80, 0.60, 0.15)
+		"quartz":
+			return Color(0.85, 0.86, 0.90)
+		"diamond":
+			return Color(0.38, 0.78, 0.88)
+		"emerald":
+			return Color(0.25, 0.68, 0.42)
+		"stone_b":
+			return Color(0.272, 0.267, 0.296)
+		_:
+			return Color(0.335, 0.330, 0.355)
+
+
+func _material(key: String, ghost: bool) -> StandardMaterial3D:
+	var base := _base_color(key)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = base
+	m.roughness = 0.6 if ghost else 0.92
+	m.metallic = 0.2 if ghost else 0.05
+
+	if key in ["gold", "quartz", "diamond", "emerald"]:
+		m.emission_enabled = true
+		m.emission = base * 0.6
+		m.emission_energy_multiplier = 0.5 if ghost else 0.35
+
+	if ghost:
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.albedo_color.a = 0.32
+		m.roughness = 0.85
+	return m
+
+
+# ---------------------------------------------------------------- 虚化
+
+func update_ghosting(center: Vector3) -> void:
+	var want: Dictionary = {}
 	for pos in grid:
-		if _is_exposed(pos):
-			_ensure_collision(pos)
+		if pos.y < 0:
+			continue
+		if absf(float(pos.z) - center.z) <= ghost_radius:
+			want[pos] = true
+
+	for pos in want:
+		if not _ghosted.has(pos):
+			_set_ghost(pos, true)
+
+	for pos in _ghosted.keys():
+		if not want.has(pos) and grid.has(pos):
+			_set_ghost(pos, false)
 
 
-func _is_exposed(pos: Vector3i) -> bool:
-	return not grid.has(pos + Vector3i.UP) \
-		or not grid.has(pos + Vector3i.DOWN) \
-		or not grid.has(pos + Vector3i.LEFT) \
-		or not grid.has(pos + Vector3i.RIGHT) \
-		or not grid.has(pos + Vector3i.FORWARD) \
-		or not grid.has(pos + Vector3i.BACK)
-
-
-func _ensure_collision(pos: Vector3i) -> void:
-	if _collisions.has(pos):
+func _set_ghost(pos: Vector3i, on: bool) -> void:
+	var key: String = grid.get(pos, "")
+	if not _solid.has(key):
 		return
-	var cs := CollisionShape3D.new()
-	cs.shape = _shared_box_shape
-	cs.position = Vector3(pos) * BLOCK
-	_body.add_child(cs)
-	_collisions[pos] = cs
+	var idx: int = _index.get(pos, -1)
+	if idx < 0:
+		return
+	var here := Transform3D(Basis.IDENTITY, Vector3(pos) * BLOCK)
+	_solid[key].set_instance_transform(idx, _hidden_xf if on else here)
+	_ghost[key].set_instance_transform(idx, here if on else _hidden_xf)
+	if on:
+		_ghosted[pos] = true
+	else:
+		_ghosted.erase(pos)
 
 
-func _drop_collision(pos: Vector3i) -> void:
-	if _collisions.has(pos):
-		_collisions[pos].queue_free()
-		_collisions.erase(pos)
+func ghosted_count() -> int:
+	return _ghosted.size()
+
+
+# ---------------------------------------------------------------- 碰撞查询
+
+func cell_of(p: float) -> int:
+	return floori(p + 0.5)
+
+
+func _cells(a: float, b: float) -> Array[int]:
+	var out: Array[int] = []
+	for v in range(cell_of(a), cell_of(b - 0.0001) + 1):
+		out.append(v)
+	return out
+
+
+func is_blocked_at(center: Vector3, half_w: float, half_d: float,
+		y_min: float, y_max: float) -> bool:
+	for i in _cells(center.x - half_w, center.x + half_w):
+		for j in _cells(y_min, y_max):
+			for k in _cells(center.z - half_d, center.z + half_d):
+				if grid.has(Vector3i(i, j, k)):
+					return true
+	return false
 
 
 # ---------------------------------------------------------------- 拾取 / 破坏
 
 func raycast_block(origin: Vector3, dir: Vector3, max_dist: float = 60.0) -> Dictionary:
-	## 体素 DDA 遍历：不依赖碰撞体，直接在网格里找第一个实心格。
-	## 返回 {hit: bool, pos: Vector3i, normal: Vector3i}
+	## 体素 DDA：不依赖碰撞体，直接在网格里找第一个实心格。
 	if dir.length_squared() < 0.000001:
 		return {"hit": false}
 
 	var d := dir.normalized()
-	# 方块 i 覆盖 [i-0.5, i+0.5)，平移到 q=p+0.5 后正好是 [i, i+1)
 	var o := origin + Vector3(0.5, 0.5, 0.5)
 	var cell := Vector3i(floori(o.x), floori(o.y), floori(o.z))
 	var step := Vector3i(_axis_step(d.x), _axis_step(d.y), _axis_step(d.z))
-	var t_delta := Vector3(
-		_inv_or_inf(d.x), _inv_or_inf(d.y), _inv_or_inf(d.z))
+	var t_delta := Vector3(_inv_or_inf(d.x), _inv_or_inf(d.y), _inv_or_inf(d.z))
 	var t_max := Vector3(
 		_first_t(o.x, cell.x, d.x), _first_t(o.y, cell.y, d.y), _first_t(o.z, cell.z, d.z))
 
@@ -246,21 +300,14 @@ func break_block(pos: Vector3i) -> bool:
 		return false
 
 	var key: String = grid[pos]
-	var idx: int = _instance_index.get(pos, -1)
-	var mm: MultiMesh = _multimeshes.get(key)
-	if mm != null and idx >= 0:
-		# 缩到零并把实例挪远，等价于隐藏（直接减 instance_count 会打乱下标）
-		mm.set_instance_transform(idx, Transform3D(Basis().scaled(Vector3.ZERO), Vector3(0, -9999, 0)))
+	var idx: int = _index.get(pos, -1)
+	if _solid.has(key) and idx >= 0:
+		_solid[key].set_instance_transform(idx, _hidden_xf)
+		_ghost[key].set_instance_transform(idx, _hidden_xf)
 
-	_drop_collision(pos)
+	_ghosted.erase(pos)
 	grid.erase(pos)
-	_instance_index.erase(pos)
-
-	# 破开之后邻居暴露出来，补上碰撞体
-	for offset in [Vector3i.UP, Vector3i.DOWN, Vector3i.LEFT, Vector3i.RIGHT, Vector3i.FORWARD, Vector3i.BACK]:
-		var n: Vector3i = pos + offset
-		if grid.has(n):
-			_ensure_collision(n)
+	_index.erase(pos)
 
 	block_broken.emit(pos, key)
 	return true
