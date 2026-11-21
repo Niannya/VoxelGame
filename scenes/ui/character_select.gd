@@ -210,6 +210,7 @@ func _apply_breathing(root: Node, box: AABB) -> void:
 	mat.shader = BREATH_SHADER
 	mat.set_shader_parameter("base_y", box.position.y)
 	mat.set_shader_parameter("model_height", box.size.y)
+	mat.set_shader_parameter("model_width", box.size.x)
 	_breath_mat = mat
 	for node in root.find_children("*", "MeshInstance3D", true, false):
 		(node as MeshInstance3D).material_override = mat
