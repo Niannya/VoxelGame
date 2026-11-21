@@ -11,6 +11,7 @@
   python vox2glb.py <in.vox> <out.glb> [目标高度=2.2]
 """
 import sys
+import json
 import struct
 import numpy as np
 import trimesh
@@ -111,6 +112,7 @@ def vox_to_mesh(vol, palette, target_height=2.2):
     verts = []
     faces = []
     vcols = []
+    normals = []
 
     # 六个方向：(轴, 正负)
     dirs = [(0, 1), (0, -1), (1, 1), (1, -1), (2, 1), (2, -1)]
@@ -132,14 +134,16 @@ def vox_to_mesh(vol, palette, target_height=2.2):
             rects = greedy_faces(mask, colors)
             for (r0, c0, dr, dc, c) in rects:
                 rgb = palette[min(max(c - 1, 0), 255)] / 255.0
-                _emit_quad(verts, faces, vcols, axis, sign, layer, others, r0, c0, dr, dc, rgb)
+                _emit_quad(verts, faces, vcols, normals, axis, sign, layer, others, r0, c0, dr, dc, rgb)
 
     verts = np.asarray(verts, dtype=np.float64)
     faces = np.asarray(faces, dtype=np.int64)
     vcols = np.asarray(vcols, dtype=np.float64)
+    normals = np.asarray(normals, dtype=np.float64)
 
     # Z-up -> Y-up: (x, y, z) -> (x, z, -y)
     verts = np.column_stack([verts[:, 0], verts[:, 2], -verts[:, 1]])
+    normals = np.column_stack([normals[:, 0], normals[:, 2], -normals[:, 1]])
 
     # 居中 + 脚底落地 + 缩放到目标高度
     mins = verts.min(axis=0)
@@ -154,13 +158,11 @@ def vox_to_mesh(vol, palette, target_height=2.2):
 
     # 顶点色 sRGB -> 线性（glTF COLOR_0 规范为线性空间）
     lin = np.where(vcols <= 0.04045, vcols / 12.92, ((vcols + 0.055) / 1.055) ** 2.4)
-    mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
     rgba = np.column_stack([lin, np.ones(len(lin))])
-    mesh.visual = trimesh.visual.ColorVisuals(mesh=mesh, vertex_colors=rgba)
-    return mesh
+    return verts, normals, rgba, faces
 
 
-def _emit_quad(verts, faces, vcols, axis, sign, layer, others, r0, c0, dr, dc, rgb):
+def _emit_quad(verts, faces, vcols, normals, axis, sign, layer, others, r0, c0, dr, dc, rgb):
     """把一个矩形面拆成 2 个三角形（顶点不共享，保证每个面颜色/法线独立）。
 
     r0/c0/dr/dc 分别对应切片的两维（others[0] 为行方向，others[1] 为列方向）。
@@ -183,6 +185,13 @@ def _emit_quad(verts, faces, vcols, axis, sign, layer, others, r0, c0, dr, dc, r
     for _ in range(4):
         vcols.append(rgb)
 
+    # 显式写出朝外法线：Godot/glTF 若拿不到法线，会按屏幕导数推算，
+    # 旋转模型时明暗会跟着乱跳（表现为“光从背后打过来”）。
+    want = np.zeros(3)
+    want[axis] = 1.0 if sign > 0 else -1.0
+    for _ in range(4):
+        normals.append(want)
+
     # 绕序必须让法线朝外：先用叉积算出当前绕序的法线，
     # 与该面应有的法线（axis 轴 * sign）比较，反向则调换顺序。
     # （早期版本按 sign 硬编码绕序，axis=1 的两个方向因此内外反了，
@@ -190,12 +199,83 @@ def _emit_quad(verts, faces, vcols, axis, sign, layer, others, r0, c0, dr, dc, r
     e1 = np.subtract(p1, p0)
     e2 = np.subtract(p2, p0)
     n = np.cross(e1, e2)
-    want = np.zeros(3)
-    want[axis] = 1.0 if sign > 0 else -1.0
     if np.dot(n, want) >= 0.0:
         faces.extend([[base, base + 1, base + 2], [base, base + 2, base + 3]])
     else:
         faces.extend([[base, base + 2, base + 1], [base, base + 3, base + 2]])
+
+
+def write_glb(verts, normals, colors, faces, path):
+    """写 glTF 2.0 二进制：POSITION / NORMAL / COLOR_0 + 索引。"""
+    pos = np.asarray(verts, dtype=np.float32)
+    nrm = np.asarray(normals, dtype=np.float32)
+    # 顶点色用 8 位归一化（4 字节/顶点），比 float32 省 3/4 体积，观感无损
+    col = np.clip(np.rint(np.asarray(colors, dtype=np.float64) * 255.0), 0, 255).astype(np.uint8)
+    idx = np.asarray(faces, dtype=np.uint32).reshape(-1)
+
+    blobs = [pos.tobytes(), nrm.tobytes(), col.tobytes(), idx.tobytes()]
+    views = []
+    offset = 0
+    for b in blobs:
+        views.append({"buffer": 0, "byteOffset": offset, "byteLength": len(b)})
+        offset += len(b)
+        pad = (-offset) % 4
+        if pad:
+            offset += pad
+    bin_data = b""
+    for i, b in enumerate(blobs):
+        bin_data += b
+        pad = (-len(bin_data)) % 4
+        bin_data += b"\x00" * pad
+
+    gltf = {
+        "asset": {"version": "2.0", "generator": "vox2glb"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": [{"mesh": 0, "name": "voxel_character"}],
+        "meshes": [{
+            "name": "voxel_character",
+            "primitives": [{
+                "attributes": {"POSITION": 0, "NORMAL": 1, "COLOR_0": 2},
+                "indices": 3,
+                "material": 0,
+                "mode": 4,
+            }],
+        }],
+        "materials": [{
+            "name": "voxel",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [1.0, 1.0, 1.0, 1.0],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.9,
+            },
+            "doubleSided": False,
+        }],
+        "accessors": [
+            {"bufferView": 0, "componentType": 5126, "count": int(len(pos)), "type": "VEC3",
+             "min": [float(x) for x in pos.min(axis=0)], "max": [float(x) for x in pos.max(axis=0)]},
+            {"bufferView": 1, "componentType": 5126, "count": int(len(nrm)), "type": "VEC3"},
+            {"bufferView": 2, "componentType": 5121, "normalized": True, "count": int(len(col)), "type": "VEC4"},
+            {"bufferView": 3, "componentType": 5125, "count": int(len(idx)), "type": "SCALAR"},
+        ],
+        "bufferViews": views,
+        "buffers": [{"byteLength": len(bin_data)}],
+    }
+
+    json_bytes = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
+    json_bytes += b" " * ((-len(json_bytes)) % 4)
+    bin_bytes = bin_data + b"\x00" * ((-len(bin_data)) % 4)
+
+    total = 12 + 8 + len(json_bytes) + 8 + len(bin_bytes)
+    with open(path, "wb") as f:
+        f.write(b"glTF")
+        f.write(struct.pack("<II", 2, total))
+        f.write(struct.pack("<I", len(json_bytes)))
+        f.write(b"JSON")
+        f.write(json_bytes)
+        f.write(struct.pack("<I", len(bin_bytes)))
+        f.write(b"BIN\x00")
+        f.write(bin_bytes)
 
 
 def main():
@@ -207,9 +287,9 @@ def main():
     size, voxels, palette = parse_vox(src)
     print("  size=%s voxels=%d" % (size, len(voxels)))
     vol = build_volume(size, voxels, palette)
-    mesh = vox_to_mesh(vol, palette, target_h)
-    mesh.export(dst, file_type="glb")
-    print("  -> %s  tris=%d  verts=%d" % (dst, len(mesh.faces), len(mesh.vertices)))
+    verts, normals, colors, faces = vox_to_mesh(vol, palette, target_h)
+    write_glb(verts, normals, colors, faces, dst)
+    print("  -> %s  tris=%d  verts=%d" % (dst, len(faces), len(verts)))
     return 0
 
 

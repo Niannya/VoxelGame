@@ -92,6 +92,9 @@ func _ready() -> void:
 
 	_apply_tool(selected_tool)
 	preview.gui_input.connect(_on_preview_gui_input)
+	# 模型等比放大 + 相机一次摆好（之后相机不动，地台固定）
+	model_holder.scale = Vector3.ONE * MODEL_SCALE
+	_setup_camera()
 	# 等容器布局完成后再定位箭头（首帧时容器尚未排布）
 	_apply_character.call_deferred(selected_char)
 
@@ -133,25 +136,21 @@ func _apply_character(index: int) -> void:
 	name_label.text = CHAR_NAMES[index]
 
 
-## ---- 模型展示：绕竖直轴自转（转台）+ 相机俯仰 ----
+## ---- 模型展示：只让模型原地转台自转，相机与地台完全固定 ----
 
 var _model_instance: Node3D = null
 var _rot_y := 0.0        ## 模型绕竖直轴(Y)的自转角度：只转这一轴，脚永远踩在地台上
-var _pitch := 0.0        ## 相机俯仰偏移：上下拖动改的是“看的角度”，不是让模型倾斜
 var _dragging := false
 
 const ROT_SENS := 0.012      ## 每像素自转弧度
-const PITCH_SENS := 0.005    ## 每像素相机俯仰弧度
-const PITCH_MIN := -0.12     ## 最低视角（略低于模型中心）
-const PITCH_MAX := 0.55      ## 最高视角（约 31°，避免俯视看到头顶空洞）
-## 转台参数：相机永远围绕模型中心做球面环绕，模型本身只原地自转
 ## MODEL_YAW：模型资源自身的朝向修正。这 6 个 MagicaVoxel 模型导出后默认背对镜头，
 ## 统一转 180° 让角色正面朝观众；换新模型时若朝向不对，只改这一个值。
 const MODEL_YAW := PI
-const CAM_PIVOT := Vector3(0.0, 0.16, -3.4)   ## 模型中心（地台顶面 -0.94 + 身高 2.2/2）
-const CAM_RADIUS := 3.4
-## 初始俯仰：与原来相机在原点、平视模型中心的角度一致
-const CAM_BASE_PITCH := -0.047
+## 模型整体等比放大：让头顶到预览框上沿附近（1.0 = 原始 2.2 米高）
+const MODEL_SCALE := 1.35
+## 相机固定不动（地台不会跟着动）：位置与视线目标都写死
+const CAM_POS := Vector3(0.0, 0.0, 0.0)
+const CAM_LOOK_AT := Vector3(0.0, 0.16, -3.4)   ## 模型中心（地台顶面 -0.94 + 身高 2.2/2）
 
 
 func _apply_model(index: int) -> void:
@@ -186,9 +185,7 @@ func _apply_model(index: int) -> void:
 
 	# 换角色时把视角复位到正面
 	_rot_y = 0.0
-	_pitch = 0.0
 	_apply_rotation()
-	_apply_camera()
 
 
 ## 递归合并子树里所有 MeshInstance3D 的包围盒（相对传入节点）
@@ -221,15 +218,10 @@ func _apply_rotation() -> void:
 	model_holder.rotation = Vector3(0.0, MODEL_YAW + _rot_y, 0.0)
 
 
-func _apply_camera() -> void:
-	# 上下拖动只改变相机高度：围绕模型中心做球面环绕，视线始终对准模型
-	var elevation := CAM_BASE_PITCH + _pitch
-	cam.position = CAM_PIVOT + Vector3(
-		0.0,
-		sin(elevation) * CAM_RADIUS,
-		cos(elevation) * CAM_RADIUS
-	)
-	cam.look_at(CAM_PIVOT, Vector3.UP)
+func _setup_camera() -> void:
+	# 相机一次性摆好、之后不再移动：地台因此始终固定在画面同一位置
+	cam.position = CAM_POS
+	cam.look_at(CAM_LOOK_AT, Vector3.UP)
 
 
 func _on_preview_gui_input(event: InputEvent) -> void:
@@ -239,11 +231,9 @@ func _on_preview_gui_input(event: InputEvent) -> void:
 			_dragging = mb.pressed
 	elif event is InputEventMouseMotion and _dragging:
 		var mm := event as InputEventMouseMotion
-		# 左右拖 -> 模型绕竖直轴自转；上下拖 -> 相机升高/降低
+		# 左右拖动 -> 模型绕竖直轴自转（相机与地台保持不动）
 		_rot_y -= mm.relative.x * ROT_SENS
-		_pitch = clampf(_pitch - mm.relative.y * PITCH_SENS, PITCH_MIN, PITCH_MAX)
 		_apply_rotation()
-		_apply_camera()
 
 
 ## ---- 工具选择：框选跟随 + 属性面板联动 ----
