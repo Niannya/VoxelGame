@@ -28,6 +28,7 @@ func build(parent: Node3D) -> void:
 	_build_shell()
 	_build_face_wall()
 	_build_props(parent)
+	_build_collision(parent)
 	_flush_blocks(parent)
 
 
@@ -144,6 +145,40 @@ func _flush_blocks(parent: Node3D) -> void:
 		inst.name = key.capitalize()
 		inst.multimesh = mm
 		holder.add_child(inst)
+
+
+# ---------------------------------------------------------------- 碰撞
+
+func _build_collision(parent: Node3D) -> void:
+	## 用 4 个大盒子代替上千个方块碰撞体：直通道的形状完全等价，成本低得多。
+	var hw := interior_half_width
+	var h := interior_height
+	var z_lo := z_start - tunnel_length + 1
+	var length := float(tunnel_length) + 2.0
+	var mid_z := (float(z_start) + float(z_lo)) * 0.5
+	var wall_y := (h - 1) * 0.5
+
+	var body := StaticBody3D.new()
+	body.name = "Collision"
+	parent.add_child(body)
+
+	# 地面：方块层中心在 y=-1，顶面 -0.5
+	_add_box(body, "Floor", Vector3(0, -1.0, mid_z), Vector3((hw + 1) * 2.0, 1.0, length))
+	# 左右矿壁
+	_add_box(body, "WallL", Vector3(-(hw + 1), wall_y, mid_z), Vector3(1.0, h + 2.0, length))
+	_add_box(body, "WallR", Vector3(hw + 1, wall_y, mid_z), Vector3(1.0, h + 2.0, length))
+	# 尽头待挖矿壁
+	_add_box(body, "Face", Vector3(0, wall_y, z_lo - 1.0), Vector3((hw + 1) * 2.0, h + 2.0, 1.0))
+
+
+func _add_box(body: StaticBody3D, nm: String, pos: Vector3, size: Vector3) -> void:
+	var cs := CollisionShape3D.new()
+	cs.name = nm
+	var shape := BoxShape3D.new()
+	shape.size = size
+	cs.shape = shape
+	cs.position = pos
+	body.add_child(cs)
 
 
 # ---------------------------------------------------------------- 道具
