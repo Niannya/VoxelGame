@@ -11,13 +11,13 @@ extends AnimatableBody3D
 var blocked: bool = false
 
 var _world: Node3D
-var _last_ghost_z: float = 1e9
+var _last_cut_z: float = 1e9
 
 
 func _ready() -> void:
 	_world = get_node_or_null(world_path)
 	if _world:
-		_world.update_ghosting(global_position)
+		_world.update_cutaway(global_position, deck_half_depth)
 
 
 func _physics_process(delta: float) -> void:
@@ -39,6 +39,6 @@ func _physics_process(delta: float) -> void:
 		global_position = next
 
 	# 走出一段就重算虚化范围
-	if absf(global_position.z - _last_ghost_z) > 0.5:
-		_last_ghost_z = global_position.z
-		_world.update_ghosting(global_position)
+	if absf(global_position.z - _last_cut_z) > 0.5:
+		_last_cut_z = global_position.z
+		_world.update_cutaway(global_position, deck_half_depth)

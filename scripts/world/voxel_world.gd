@@ -2,8 +2,8 @@ extends Node3D
 ## 运行时体素世界。
 ## 结构：起始空腔（矿车停靠）+ 前方整段矿道被矿体填满，必须由玩家挖开。
 ## 不生成侧墙，避免俯视角下遮挡视野。
-## 渲染分两层 MultiMesh：实体层（不透明）与虚化层（半透明），
-## 靠近矿车的未挖方块切到虚化层，免得挡住后面的矿。
+## 矿车进入矿层后，把「矿车前缘往后」那一段里没挖掉的方块直接隐藏（挖空式剖面），
+## 免得挡住后面要挖的矿；前方待挖的矿始终保持实体。
 
 const BLOCK := 1.0
 ## 零缩放 + 挪到远处，等价于隐藏该实例
@@ -15,15 +15,15 @@ var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9
 @export var tunnel_length: int = 40        # 纵深（块）
 @export var z_start: int = 6               # 起始空腔尾端 z
 @export var chamber_length: int = 7        # 起始空腔长度
-@export var ghost_radius: float = 4.0      # 矿车前后多远的未挖方块要虚化
+@export var cutaway_behind: float = 5.0    # 矿车前缘往后多远内的未挖方块要隐藏
+@export var cutaway_min_height: int = 2    # 只隐藏这个高度以上的方块，保住通道两侧的矮墙
 
 signal block_broken(pos: Vector3i, key: String)
 
 var grid: Dictionary = {}                  # Vector3i -> String
-var _index: Dictionary = {}                # Vector3i -> int（两层 MultiMesh 共用下标）
+var _index: Dictionary = {}                # Vector3i -> int（MultiMesh 下标）
 var _solid: Dictionary = {}                # key -> MultiMesh
-var _ghost: Dictionary = {}                # key -> MultiMesh
-var _ghosted: Dictionary = {}              # Vector3i -> true
+var _hidden: Dictionary = {}               # Vector3i -> true（被剖面隐藏）
 var _rng := RandomNumberGenerator.new()
 var _built := false
 
@@ -95,33 +95,26 @@ func _build_visuals() -> void:
 
 	for key in by_key:
 		var positions: Array = by_key[key]
-		_solid[key] = _make_multimesh(positions, key, false)
-		_ghost[key] = _make_multimesh(positions, key, true)
+		_solid[key] = _make_multimesh(positions, key)
 
 		var s := MultiMeshInstance3D.new()
 		s.name = "Solid_" + key
 		s.multimesh = _solid[key]
 		add_child(s)
 
-		var g := MultiMeshInstance3D.new()
-		g.name = "Ghost_" + key
-		g.multimesh = _ghost[key]
-		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(g)
 
-
-func _make_multimesh(positions: Array, key: String, ghost: bool) -> MultiMesh:
+func _make_multimesh(positions: Array, key: String) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	var box := BoxMesh.new()
 	box.size = Vector3(BLOCK, BLOCK, BLOCK)
-	box.material = _material(key, ghost)
+	box.material = _material(key)
 	mm.mesh = box
 	mm.instance_count = positions.size()
 
 	for idx in positions.size():
 		var p: Vector3i = positions[idx]
-		mm.set_instance_transform(idx, _hidden_xf if ghost else Transform3D(Basis.IDENTITY, Vector3(p) * BLOCK))
+		mm.set_instance_transform(idx, Transform3D(Basis.IDENTITY, Vector3(p) * BLOCK))
 		_index[p] = idx
 	return mm
 
@@ -142,45 +135,46 @@ func _base_color(key: String) -> Color:
 			return Color(0.335, 0.330, 0.355)
 
 
-func _material(key: String, ghost: bool) -> StandardMaterial3D:
+func _material(key: String) -> StandardMaterial3D:
 	var base := _base_color(key)
 	var m := StandardMaterial3D.new()
 	m.albedo_color = base
-	m.roughness = 0.6 if ghost else 0.92
-	m.metallic = 0.2 if ghost else 0.05
+	m.roughness = 0.92
+	m.metallic = 0.05
 
 	if key in ["gold", "quartz", "diamond", "emerald"]:
 		m.emission_enabled = true
 		m.emission = base * 0.6
-		m.emission_energy_multiplier = 0.5 if ghost else 0.35
-
-	if ghost:
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.albedo_color.a = 0.32
-		m.roughness = 0.85
+		m.emission_energy_multiplier = 0.35
 	return m
 
 
-# ---------------------------------------------------------------- 虚化
+# ---------------------------------------------------------------- 剖面隐藏
 
-func update_ghosting(center: Vector3) -> void:
+func update_cutaway(center: Vector3, half_depth: float) -> void:
+	## 只处理矿车「已经进入 / 已经走过」的那一段：从前缘往后 cutaway_behind 格。
+	## 前方待挖的矿保持实体，那是接下来的目标，不能藏。
+	var front_z := center.z - half_depth
+	var back_z := center.z + cutaway_behind
+
 	var want: Dictionary = {}
 	for pos in grid:
-		if pos.y < 0:
+		if pos.y < cutaway_min_height:
 			continue
-		if absf(float(pos.z) - center.z) <= ghost_radius:
+		var z := float(pos.z)
+		if z >= front_z and z <= back_z:
 			want[pos] = true
 
 	for pos in want:
-		if not _ghosted.has(pos):
-			_set_ghost(pos, true)
+		if not _hidden.has(pos):
+			_set_hidden(pos, true)
 
-	for pos in _ghosted.keys():
+	for pos in _hidden.keys():
 		if not want.has(pos) and grid.has(pos):
-			_set_ghost(pos, false)
+			_set_hidden(pos, false)
 
 
-func _set_ghost(pos: Vector3i, on: bool) -> void:
+func _set_hidden(pos: Vector3i, on: bool) -> void:
 	var key: String = grid.get(pos, "")
 	if not _solid.has(key):
 		return
@@ -189,15 +183,14 @@ func _set_ghost(pos: Vector3i, on: bool) -> void:
 		return
 	var here := Transform3D(Basis.IDENTITY, Vector3(pos) * BLOCK)
 	_solid[key].set_instance_transform(idx, _hidden_xf if on else here)
-	_ghost[key].set_instance_transform(idx, here if on else _hidden_xf)
 	if on:
-		_ghosted[pos] = true
+		_hidden[pos] = true
 	else:
-		_ghosted.erase(pos)
+		_hidden.erase(pos)
 
 
-func ghosted_count() -> int:
-	return _ghosted.size()
+func hidden_count() -> int:
+	return _hidden.size()
 
 
 # ---------------------------------------------------------------- 碰撞查询
@@ -303,9 +296,8 @@ func break_block(pos: Vector3i) -> bool:
 	var idx: int = _index.get(pos, -1)
 	if _solid.has(key) and idx >= 0:
 		_solid[key].set_instance_transform(idx, _hidden_xf)
-		_ghost[key].set_instance_transform(idx, _hidden_xf)
 
-	_ghosted.erase(pos)
+	_hidden.erase(pos)
 	grid.erase(pos)
 	_index.erase(pos)
 
