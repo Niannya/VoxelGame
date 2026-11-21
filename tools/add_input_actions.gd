@@ -8,6 +8,7 @@ func _initialize() -> void:
 		"move_right": [KEY_D, KEY_RIGHT],
 		"move_forward": [KEY_W, KEY_UP],
 		"move_back": [KEY_S, KEY_DOWN],
+		"jump": [KEY_SPACE],
 	}
 
 	for action_name in actions:
@@ -17,6 +18,11 @@ func _initialize() -> void:
 			ev.physical_keycode = key
 			events.append(ev)
 		ProjectSettings.set_setting("input/" + action_name, {"deadzone": 0.2, "events": events})
+
+	# 挖矿：按住鼠标左键
+	var mouse_ev := InputEventMouseButton.new()
+	mouse_ev.button_index = MOUSE_BUTTON_LEFT
+	ProjectSettings.set_setting("input/mine", {"deadzone": 0.2, "events": [mouse_ev]})
 
 	var err := ProjectSettings.save()
 	print("保存 project.godot: ", err)

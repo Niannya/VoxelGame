@@ -8,6 +8,8 @@ extends CharacterBody3D
 @export var ground_friction: float = 45.0
 @export var turn_speed: float = 14.0
 @export var gravity: float = 24.0
+## 起跳速度按「至少能跳上一格方块」定：v²/(2g) = 7.5²/48 ≈ 1.17 格
+@export var jump_velocity: float = 7.5
 
 @onready var visual: Node3D = $Visual
 
@@ -29,6 +31,8 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor():
 		velocity.y = 0.0
+		if Input.is_action_just_pressed("jump"):
+			velocity.y = jump_velocity
 	else:
 		velocity.y -= gravity * delta
 
