@@ -183,8 +183,16 @@ def _emit_quad(verts, faces, vcols, axis, sign, layer, others, r0, c0, dr, dc, r
     for _ in range(4):
         vcols.append(rgb)
 
-    # 根据法线方向决定绕序，保证朝外
-    if sign > 0:
+    # 绕序必须让法线朝外：先用叉积算出当前绕序的法线，
+    # 与该面应有的法线（axis 轴 * sign）比较，反向则调换顺序。
+    # （早期版本按 sign 硬编码绕序，axis=1 的两个方向因此内外反了，
+    #   导入 Godot 后被背面剔除，表现为角色脸上/身上一块块“像素消失”。）
+    e1 = np.subtract(p1, p0)
+    e2 = np.subtract(p2, p0)
+    n = np.cross(e1, e2)
+    want = np.zeros(3)
+    want[axis] = 1.0 if sign > 0 else -1.0
+    if np.dot(n, want) >= 0.0:
         faces.extend([[base, base + 1, base + 2], [base, base + 2, base + 3]])
     else:
         faces.extend([[base, base + 2, base + 1], [base, base + 3, base + 2]])

@@ -437,7 +437,7 @@ offset_right = 820.0
 offset_bottom = 924.0
 theme_override_colors/font_color = Color(0.55, 0.57, 0.63, 1)
 theme_override_font_sizes/font_size = 15
-text = "左键拖拽旋转角色 · 上下拖动可俯仰"
+text = "左键拖拽：左右转台旋转 · 上下调整视角"
 
 [node name="NameTag" type="PanelContainer" parent="."]
 layout_mode = 0
