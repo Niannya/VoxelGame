@@ -4,14 +4,15 @@ extends Control
 ## 程序接入后可整体替换或逐个函数改造，数据结构见下方常量。
 
 const CHAR_NAMES := ["角色名1", "角色名2", "角色名3", "角色名4", "角色名5", "角色名6"]
-## 每个角色的占位配色：[身体, 头, 腿]（正式接入后换成模型场景切换）
-const CHAR_COLORS := [
-	[Color(0.42, 0.66, 0.62), Color(0.93, 0.85, 0.71), Color(0.26, 0.42, 0.5)],
-	[Color(0.85, 0.55, 0.28), Color(0.93, 0.85, 0.71), Color(0.45, 0.32, 0.22)],
-	[Color(0.55, 0.42, 0.72), Color(0.93, 0.85, 0.71), Color(0.3, 0.24, 0.42)],
-	[Color(0.78, 0.34, 0.34), Color(0.93, 0.85, 0.71), Color(0.4, 0.2, 0.2)],
-	[Color(0.36, 0.52, 0.78), Color(0.93, 0.85, 0.71), Color(0.22, 0.3, 0.44)],
-	[Color(0.6, 0.62, 0.35), Color(0.93, 0.85, 0.71), Color(0.35, 0.38, 0.2)],
+## 每个角色的模型（glTF 2.0 二进制 .glb，Godot 会自动导入为场景）
+## 换成正式模型时只改这里；模型会自动脚底贴地台、XZ 居中
+const CHAR_MODELS := [
+	"res://assets/characters/char_01_cuntou.glb",
+	"res://assets/characters/char_02_baimao.glb",
+	"res://assets/characters/char_03_fenmao.glb",
+	"res://assets/characters/char_04_lanmao.glb",
+	"res://assets/characters/char_05_huangmao.glb",
+	"res://assets/characters/char_06_hemao.glb",
 ]
 
 const TOOL_DATA := [
@@ -42,7 +43,8 @@ const COLOR_STATUS_WAIT := Color(0.62, 0.63, 0.68)
 @onready var char_scroll: ScrollContainer = $CharList
 @onready var arrow: Label = $ArrowIndicator
 @onready var name_label: Label = $NameTag/Label
-@onready var model_root: Node3D = $ModelPreview/SubViewport/CharacterPlaceholder
+@onready var model_holder: Node3D = $ModelPreview/SubViewport/CharacterPlaceholder/ModelHolder
+@onready var preview: SubViewportContainer = $ModelPreview
 
 @onready var tool_slots: Array = [
 	$RightPanel/ToolsPage/ToolScroll/ToolGrid/Tool1,
@@ -88,6 +90,7 @@ func _ready() -> void:
 		tool_slots[i].pressed.connect(_select_tool.bind(i))
 
 	_apply_tool(selected_tool)
+	preview.gui_input.connect(_on_preview_gui_input)
 	# 等容器布局完成后再定位箭头（首帧时容器尚未排布）
 	_apply_character.call_deferred(selected_char)
 
@@ -123,21 +126,98 @@ func _apply_character(index: int) -> void:
 	# 选中的头像滚出可视区时自动滚回可见位置（箭头本身由 _process 每帧跟随）
 	char_scroll.ensure_control_visible(char_slots[index])
 
-	# 占位模型换色（正式接入后改为：删除旧模型实例、实例化对应角色场景）
-	var colors: Array = CHAR_COLORS[index]
-	_set_model_colors(colors[0], colors[1], colors[2])
+	# 切换模型：删除旧实例、实例化对应角色的 glb
+	_apply_model(index)
 
 	name_label.text = CHAR_NAMES[index]
 
 
-func _set_model_colors(body_c: Color, head_c: Color, leg_c: Color) -> void:
-	var body: MeshInstance3D = model_root.get_node("Body")
-	var head: MeshInstance3D = model_root.get_node("Head")
-	var legs := [model_root.get_node("LegL"), model_root.get_node("LegR")]
-	(body.get_surface_override_material(0) as StandardMaterial3D).albedo_color = body_c
-	(head.get_surface_override_material(0) as StandardMaterial3D).albedo_color = head_c
-	for leg in legs:
-		(leg.get_surface_override_material(0) as StandardMaterial3D).albedo_color = leg_c
+## ---- 模型加载与自由旋转 ----
+
+var _model_instance: Node3D = null
+var _rot_y := 0.0
+var _rot_x := 0.0
+var _dragging := false
+
+const ROT_SENS := 0.012      ## 每像素旋转弧度
+const ROT_X_LIMIT := 0.55    ## 俯仰限制（约 ±31°，避免从下方看到模型内部）
+
+
+func _apply_model(index: int) -> void:
+	if _model_instance and is_instance_valid(_model_instance):
+		_model_instance.queue_free()
+		_model_instance = null
+
+	var path: String = CHAR_MODELS[index]
+	if not ResourceLoader.exists(path):
+		push_warning("模型缺失：" + path)
+		return
+
+	var packed := load(path) as PackedScene
+	if packed == null:
+		push_warning("模型无法加载：" + path)
+		return
+
+	var inst := packed.instantiate() as Node3D
+	if inst == null:
+		return
+	model_holder.add_child(inst)
+	_model_instance = inst
+
+	# 统一摆放：XZ 居中、脚底贴 ModelHolder 的 y=0（即地台顶面）
+	var box := _subtree_aabb(inst)
+	if box.size != Vector3.ZERO:
+		inst.position = Vector3(
+			-(box.position.x + box.size.x * 0.5),
+			-box.position.y,
+			-(box.position.z + box.size.z * 0.5)
+		)
+
+	# 换角色时把视角复位到正面
+	_rot_y = 0.0
+	_rot_x = 0.0
+	_apply_rotation()
+
+
+## 递归合并子树里所有 MeshInstance3D 的包围盒（相对传入节点）
+func _subtree_aabb(node: Node, xform := Transform3D.IDENTITY) -> AABB:
+	var result := AABB()
+	var has := false
+	for child in node.get_children():
+		var t := xform
+		if child is Node3D:
+			t = xform * (child as Node3D).transform
+		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
+			var b: AABB = t * (child as MeshInstance3D).get_aabb()
+			if not has:
+				result = b
+				has = true
+			else:
+				result = result.merge(b)
+		var sub := _subtree_aabb(child, t)
+		if sub.size != Vector3.ZERO:
+			if not has:
+				result = sub
+				has = true
+			else:
+				result = result.merge(sub)
+	return result
+
+
+func _apply_rotation() -> void:
+	model_holder.rotation = Vector3(_rot_x, _rot_y, 0.0)
+
+
+func _on_preview_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			_dragging = mb.pressed
+	elif event is InputEventMouseMotion and _dragging:
+		var mm := event as InputEventMouseMotion
+		_rot_y -= mm.relative.x * ROT_SENS
+		_rot_x = clampf(_rot_x - mm.relative.y * ROT_SENS, -ROT_X_LIMIT, ROT_X_LIMIT)
+		_apply_rotation()
 
 
 ## ---- 工具选择：框选跟随 + 属性面板联动 ----

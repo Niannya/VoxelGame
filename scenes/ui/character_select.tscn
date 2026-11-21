@@ -403,6 +403,12 @@ fov = 45.0
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="ModelPreview/SubViewport"]
 light_energy = 1.2
 
+[node name="FillLight" type="DirectionalLight3D" parent="ModelPreview/SubViewport"]
+rotation_degrees = Vector3(-12, 155, 0)
+light_color = Color(0.85, 0.9, 1, 1)
+light_energy = 0.6
+light_specular = 0.15
+
 [node name="CharacterPlaceholder" type="Node3D" parent="ModelPreview/SubViewport"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.3)
 
@@ -411,25 +417,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.05, -3.4)
 mesh = SubResource("Mesh_pedestal")
 surface_material_override/0 = SubResource("Mat_pedestal")
 
-[node name="LegL" type="MeshInstance3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, -0.665, -3.4)
-mesh = SubResource("BoxMesh_leg")
-surface_material_override/0 = SubResource("Mat_leg")
-
-[node name="LegR" type="MeshInstance3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, -0.665, -3.4)
-mesh = SubResource("BoxMesh_leg")
-surface_material_override/0 = SubResource("Mat_leg")
-
-[node name="Body" type="MeshInstance3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.035, -3.4)
-mesh = SubResource("BoxMesh_body")
-surface_material_override/0 = SubResource("Mat_body")
-
-[node name="Head" type="MeshInstance3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, -3.4)
-mesh = SubResource("BoxMesh_head")
-surface_material_override/0 = SubResource("Mat_head")
+[node name="ModelHolder" type="Node3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.94, -3.4)
 
 [node name="PreviewFrame" type="Panel" parent="."]
 layout_mode = 0
@@ -448,7 +437,7 @@ offset_right = 820.0
 offset_bottom = 924.0
 theme_override_colors/font_color = Color(0.55, 0.57, 0.63, 1)
 theme_override_font_sizes/font_size = 15
-text = "占位模型 · 待替换为体素角色 · 拖拽旋转逻辑由程序接入"
+text = "左键拖拽旋转角色 · 上下拖动可俯仰"
 
 [node name="NameTag" type="PanelContainer" parent="."]
 layout_mode = 0
@@ -456,10 +445,12 @@ offset_left = 360.0
 offset_top = 540.0
 offset_right = 620.0
 offset_bottom = 606.0
+mouse_filter = 2
 theme_override_styles/panel = SubResource("SB_panel_dark")
 
 [node name="Label" type="Label" parent="NameTag"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.96, 0.94, 0.88, 1)
 theme_override_font_sizes/font_size = 26
 text = "角色名！"
