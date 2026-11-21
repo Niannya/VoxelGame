@@ -1,7 +1,7 @@
 extends Node3D
 ## 运行时体素世界。
 ## 结构：起始空腔（矿车停靠）+ 前方整段矿道被矿体填满，必须由玩家挖开。
-## 不生成侧墙，避免俯视角下遮挡视野。
+## 只砌远侧（-X）的矿壁，近侧（+X）敞开 —— 相机在近侧往远看，砌墙会挡住视线。
 ## 矿车进入矿层后，把「矿车前缘往后」那一段里没挖掉的方块直接隐藏（挖空式剖面），
 ## 免得挡住后面要挖的矿；前方待挖的矿始终保持实体。
 
@@ -15,8 +15,10 @@ var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9
 @export var tunnel_length: int = 40        # 纵深（块）
 @export var z_start: int = 6               # 起始空腔尾端 z
 @export var chamber_length: int = 7        # 起始空腔长度
-@export var cutaway_behind: float = 5.0    # 矿车前缘往后多远内的未挖方块要隐藏
+@export var cutaway_behind: float = 9.0    # 矿车前缘往后多远内的未挖方块要隐藏
 @export var cutaway_min_height: int = 2    # 只隐藏这个高度以上的方块，保住通道两侧的矮墙
+## +X 侧最后生成到哪一列。相机在 +X 侧往 -X 看，所以这一侧不砌墙，否则全被挡住。
+@export var near_edge_cell: int = 1
 
 signal block_broken(pos: Vector3i, key: String)
 
@@ -53,21 +55,25 @@ func _fill_grid() -> void:
 	var h := interior_height
 	var z_lo := z_start - tunnel_length + 1
 	var chamber_end := chamber_end_z()
+	var near_edge := near_edge_cell   # +X 侧只铺到这一列，再往外不生成，留给侧向机位看进来
 
-	# 地板两层，贯穿全程
+	# 地板铺满整个宽度（近侧也要有，否则侧视会在画面下方露出虚空）；
+	# 矿壁和矿体只到 near_edge 为止。
 	for k in range(z_lo, z_start + 1):
-		for i in range(-hw, hw + 1):
+		for i in range(-hw - 1, hw + 1):
 			grid[Vector3i(i, -1, k)] = _pick(0.05)
 			grid[Vector3i(i, -2, k)] = _pick(0.05)
+		for j in range(-2, h + 1):
+			grid[Vector3i(-hw - 1, j, k)] = _pick(0.11)
 
 	# 空腔之后整段堵死，玩家必须自己挖开
 	for k in range(z_lo, chamber_end):
-		for i in range(-hw, hw + 1):
+		for i in range(-hw, near_edge + 1):
 			for j in range(0, h):
 				grid[Vector3i(i, j, k)] = _pick(0.12)
 
 	# 空腔尾墙，避免回望看到虚空
-	for i in range(-hw, hw + 1):
+	for i in range(-hw - 1, hw + 1):
 		for j in range(-2, h):
 			grid[Vector3i(i, j, z_start + 1)] = _pick(0.08)
 
@@ -158,8 +164,12 @@ func update_cutaway(center: Vector3, half_depth: float) -> void:
 	var back_z := center.z + cutaway_behind
 
 	var want: Dictionary = {}
+	var chamber_end := chamber_end_z()
 	for pos in grid:
 		if pos.y < cutaway_min_height:
+			continue
+		# 只对矿体做剖面，空腔和尾墙不动
+		if pos.z >= chamber_end:
 			continue
 		var z := float(pos.z)
 		if z >= front_z and z <= back_z:

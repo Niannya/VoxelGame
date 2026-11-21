@@ -15,6 +15,7 @@ extends CharacterBody3D
 @export var platform_margin: float = 0.5
 
 @onready var visual: Node3D = $Visual
+@onready var _cam: Camera3D = $Camera3D
 
 var _platform: Node3D
 
@@ -26,7 +27,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var dir := Vector3(input.x, 0.0, input.y)
+	# 相机偏航后，屏幕上方不再等于世界 -Z，得把输入方向一起转过去
+	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _cam.global_rotation.y)
 
 	if dir.length_squared() > 0.001:
 		dir = dir.normalized()
