@@ -441,10 +441,10 @@ text = "左键拖拽旋转角色 · 上下拖动可俯仰"
 
 [node name="NameTag" type="PanelContainer" parent="."]
 layout_mode = 0
-offset_left = 360.0
-offset_top = 540.0
-offset_right = 620.0
-offset_bottom = 606.0
+offset_left = 344.0
+offset_top = 742.0
+offset_right = 604.0
+offset_bottom = 808.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("SB_panel_dark")
 
