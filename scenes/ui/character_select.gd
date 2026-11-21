@@ -99,7 +99,12 @@ func _ready() -> void:
 	_apply_character.call_deferred(selected_char)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	# 待机呼吸：把正弦相位写给模型材质里的着色器（只动上半身，脚不动）
+	if _breath_mat != null:
+		_breath_time += delta
+		_breath_mat.set_shader_parameter("breath", sin(_breath_time * TAU / BREATH_PERIOD))
+
 	# 箭头每帧跟随选中头像：滚动列表、布局变化时都会自动跟上
 	if selected_char < char_slots.size():
 		var slot: Control = char_slots[selected_char]
@@ -142,6 +147,13 @@ var _model_instance: Node3D = null
 var _rot_y := 0.0        ## 模型绕竖直轴(Y)的自转角度：只转这一轴，脚永远踩在地台上
 var _dragging := false
 
+## ---- 待机呼吸（顶点着色器）----
+## 不依赖骨骼：着色器按高度分带做位移，腰以下权重为 0，所以脚始终贴地台。
+const BREATH_SHADER := preload("res://scenes/ui/shaders/voxel_breathing.gdshader")
+const BREATH_PERIOD := 3.6    ## 一次完整呼吸的秒数（吸气 ~1.8s、呼气 ~1.8s）
+var _breath_mat: ShaderMaterial = null
+var _breath_time := 0.0
+
 const ROT_SENS := 0.012      ## 每像素自转弧度
 ## MODEL_YAW：模型资源自身的朝向修正。这 6 个 MagicaVoxel 模型导出后默认背对镜头，
 ## 统一转 180° 让角色正面朝观众；换新模型时若朝向不对，只改这一个值。
@@ -183,9 +195,24 @@ func _apply_model(index: int) -> void:
 			-(box.position.z + box.size.z * 0.5)
 		)
 
+	# 呼吸效果：给模型套一个顶点着色器材质（脚底锁定，只动上半身）
+	_apply_breathing(inst, box)
+
 	# 换角色时把视角复位到正面
 	_rot_y = 0.0
 	_apply_rotation()
+
+
+## 给模型的所有 MeshInstance3D 换上呼吸材质。
+## box 是模型自身空间的包围盒，用来告诉着色器"脚底在哪、有多高"，换模型无需改参数。
+func _apply_breathing(root: Node, box: AABB) -> void:
+	var mat := ShaderMaterial.new()
+	mat.shader = BREATH_SHADER
+	mat.set_shader_parameter("base_y", box.position.y)
+	mat.set_shader_parameter("model_height", box.size.y)
+	_breath_mat = mat
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		(node as MeshInstance3D).material_override = mat
 
 
 ## 递归合并子树里所有 MeshInstance3D 的包围盒（相对传入节点）
