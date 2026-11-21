@@ -411,7 +411,7 @@ light_energy = 0.45
 light_specular = 0.15
 
 [node name="CharacterPlaceholder" type="Node3D" parent="ModelPreview/SubViewport"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.137, -1.3)
 
 [node name="Pedestal" type="MeshInstance3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.05, -3.4)
@@ -443,9 +443,9 @@ text = "左键拖拽：旋转角色（地台固定不动）"
 [node name="NameTag" type="PanelContainer" parent="."]
 layout_mode = 0
 offset_left = 344.0
-offset_top = 798.0
+offset_top = 686.0
 offset_right = 604.0
-offset_bottom = 864.0
+offset_bottom = 752.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("SB_panel_dark")
 
