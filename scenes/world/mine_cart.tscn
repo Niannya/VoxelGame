@@ -23,44 +23,43 @@ roughness = 0.4
 [sub_resource type="BoxMesh" id="BoxMesh_rim_z"]
 size = Vector3(0.12, 0.18, 9)
 
-[node name="MineCart" type="AnimatableBody3D"]
+[node name="MineCart" type="AnimatableBody3D" unique_id=2029811081]
 script = ExtResource("1_cart")
 
-[node name="Collision" type="CollisionShape3D" parent="."]
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=417153321]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_deck")
 
-[node name="Visual" type="Node3D" parent="."]
+[node name="Visual" type="Node3D" parent="." unique_id=1512270346]
 
-[node name="Deck" type="MeshInstance3D" parent="Visual"]
+[node name="Deck" type="MeshInstance3D" parent="Visual" unique_id=1503088346]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 mesh = SubResource("BoxMesh_deck")
 surface_material_override/0 = SubResource("Mat_deck")
 
-[node name="RimFront" type="MeshInstance3D" parent="Visual"]
+[node name="RimFront" type="MeshInstance3D" parent="Visual" unique_id=749175025]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, -4.44)
 mesh = SubResource("BoxMesh_rim")
 surface_material_override/0 = SubResource("Mat_rim")
 
-[node name="RimBack" type="MeshInstance3D" parent="Visual"]
+[node name="RimBack" type="MeshInstance3D" parent="Visual" unique_id=1155825967]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 4.44)
 mesh = SubResource("BoxMesh_rim")
 surface_material_override/0 = SubResource("Mat_rim")
 
-[node name="RimLeft" type="MeshInstance3D" parent="Visual"]
+[node name="RimLeft" type="MeshInstance3D" parent="Visual" unique_id=1424247277]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.94, 0.09, 0)
 mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
 
-[node name="RimRight" type="MeshInstance3D" parent="Visual"]
+[node name="RimRight" type="MeshInstance3D" parent="Visual" unique_id=1297955953]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.94, 0.09, 0)
 mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
 
-[node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(3.689638, 6.151635, 2.898335)
-rotation_degrees = Vector3(-55, 83.27, 0)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1410830243]
+transform = Transform3D(0.11719077, -0.8135076, 0.5696242, 0, 0.57357645, 0.81915206, -0.9931094, -0.095997065, 0.06721787, 6.023795, 8.304053, 0.60421586)
+current = true
 fov = 50.0
 near = 0.1
 far = 200.0
-current = true

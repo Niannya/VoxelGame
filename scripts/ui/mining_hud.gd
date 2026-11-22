@@ -22,6 +22,6 @@ func update_counts(total: int, by_type: Dictionary) -> void:
 			parts.append("%s %d" % [TYPE_NAMES[key], n])
 
 	if parts.is_empty():
-		_detail.text = "对着方块长按左键开挖"
+		_detail.text = "按 F 挖掘前方的矿"
 	else:
 		_detail.text = "  ".join(parts)

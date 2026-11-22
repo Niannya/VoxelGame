@@ -91,6 +91,12 @@ func _physics_process(delta: float) -> void:
 	_clamp_to_platform()
 
 
+func facing_dir() -> Vector3:
+	## 模型正面朝 -Z，绕 Y 转 yaw 之后的正前方
+	var yaw := visual.rotation.y
+	return Vector3(-sin(yaw), 0.0, -cos(yaw))
+
+
 func _camera_yaw() -> float:
 	var cam := get_viewport().get_camera_3d()
 	return cam.global_rotation.y if cam != null else 0.0

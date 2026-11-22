@@ -228,6 +228,59 @@ func is_blocked_at(center: Vector3, half_w: float, half_d: float,
 	return false
 
 
+# ---------------------------------------------------------------- 可挖目标
+
+func block_size() -> Vector3:
+	return BLOCK
+
+
+func is_breakable(pos: Vector3i) -> bool:
+	## 背景墙、地板、空腔尾墙都是结构件，挖不了
+	if not grid.has(pos):
+		return false
+	if pos.y < 0:
+		return false
+	if pos.x <= -interior_half_width - 1:
+		return false
+	if pos.z >= z_start + 1:
+		return false
+	return true
+
+
+func targets_in_front(from: Vector3, facing: Vector3, reach: int) -> Array[Vector3i]:
+	## 从玩家所在格沿朝向推进，取最近的一「片」可挖方块（同一列上所有高度）。
+	var out: Array[Vector3i] = []
+	if facing.length_squared() < 0.0001:
+		return out
+
+	var d := facing.normalized()
+	if absf(d.x) >= absf(d.z):
+		var dir := 1 if d.x > 0.0 else -1
+		var start_i := cell_of(0, from.x)
+		var fixed_k := cell_of(2, from.z)
+		for s in range(1, reach + 1):
+			var i := start_i + dir * s
+			for j in range(0, interior_height):
+				var p := Vector3i(i, j, fixed_k)
+				if is_breakable(p):
+					out.append(p)
+			if not out.is_empty():
+				return out
+	else:
+		var dir := 1 if d.z > 0.0 else -1
+		var start_k := cell_of(2, from.z)
+		var fixed_i := cell_of(0, from.x)
+		for s in range(1, reach + 1):
+			var k := start_k + dir * s
+			for j in range(0, interior_height):
+				var p := Vector3i(fixed_i, j, k)
+				if is_breakable(p):
+					out.append(p)
+			if not out.is_empty():
+				return out
+	return out
+
+
 # ---------------------------------------------------------------- 拾取 / 破坏
 
 func raycast_block(origin: Vector3, dir: Vector3, max_dist: float = 60.0) -> Dictionary:
@@ -307,7 +360,7 @@ func block_key(pos: Vector3i) -> String:
 
 
 func break_block(pos: Vector3i) -> bool:
-	if not grid.has(pos):
+	if not is_breakable(pos):
 		return false
 
 	var key: String = grid[pos]

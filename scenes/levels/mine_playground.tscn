@@ -49,6 +49,6 @@ platform_path = NodePath("../MineCart")
 
 [node name="Mining" type="Node3D" parent="."]
 script = ExtResource("3_mining")
-camera_path = NodePath("../MineCart/Camera3D")
+player_path = NodePath("../Player")
 world_path = NodePath("../VoxelWorld")
 hud_path = NodePath("../MiningHUD")
