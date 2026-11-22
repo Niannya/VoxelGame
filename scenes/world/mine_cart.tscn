@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://c34om5ww0fp58"]
+[gd_scene load_steps=9 format=3 uid="uid://c34om5ww0fp58"]
 
 [ext_resource type="Script" uid="uid://c3joe1hcut3b3" path="res://scripts/world/mine_cart.gd" id="1_cart"]
+[ext_resource type="PackedScene" path="res://assets/props/dsh_diorama/mine_cart_unit.glb" id="2_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_deck"]
 size = Vector3(6, 1, 9)
@@ -32,27 +33,34 @@ shape = SubResource("BoxShape3D_deck")
 
 [node name="Visual" type="Node3D" parent="." unique_id=1512270346]
 
+[node name="CartModel" parent="Visual" instance=ExtResource("2_model")]
+
 [node name="Deck" type="MeshInstance3D" parent="Visual" unique_id=1503088346]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 mesh = SubResource("BoxMesh_deck")
 surface_material_override/0 = SubResource("Mat_deck")
 
 [node name="RimFront" type="MeshInstance3D" parent="Visual" unique_id=749175025]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, -4.44)
 mesh = SubResource("BoxMesh_rim")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="RimBack" type="MeshInstance3D" parent="Visual" unique_id=1155825967]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 4.44)
 mesh = SubResource("BoxMesh_rim")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="RimLeft" type="MeshInstance3D" parent="Visual" unique_id=1424247277]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.94, 0.09, 0)
 mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="RimRight" type="MeshInstance3D" parent="Visual" unique_id=1297955953]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.94, 0.09, 0)
 mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
