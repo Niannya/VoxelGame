@@ -25,6 +25,45 @@ func _ready() -> void:
 		_platform = get_node_or_null(platform_path)
 
 
+func set_character_model(packed: PackedScene) -> void:
+	if packed == null:
+		return
+	var model := packed.instantiate() as Node3D
+	if model == null:
+		return
+	model.name = "SelectedCharacter"
+	visual.add_child(model)
+	var box := _model_bounds(model)
+	if box.size.y > 0.0:
+		var scale_factor := 1.5 / box.size.y
+		model.scale = Vector3.ONE * scale_factor
+		model.position = Vector3(
+			-(box.position.x + box.size.x * 0.5) * scale_factor,
+			-box.position.y * scale_factor,
+			-(box.position.z + box.size.z * 0.5) * scale_factor
+		)
+	model.rotation.y = PI
+	for child_name in ["Body", "Visor", "Helmet", "Lamp"]:
+		visual.get_node(child_name).visible = false
+
+
+func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
+	var result := AABB()
+	var found := false
+	for child in node.get_children():
+		var child_xform := xform
+		if child is Node3D:
+			child_xform = xform * (child as Node3D).transform
+		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
+			result = child_xform * (child as MeshInstance3D).get_aabb() if not found else result.merge(child_xform * (child as MeshInstance3D).get_aabb())
+			found = true
+		var sub := _model_bounds(child, child_xform)
+		if sub.size != Vector3.ZERO:
+			result = sub if not found else result.merge(sub)
+			found = true
+	return result
+
+
 func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	# 相机偏航后，屏幕上方不再等于世界 -Z，得把输入方向一起转过去

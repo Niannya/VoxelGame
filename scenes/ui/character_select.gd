@@ -1,9 +1,19 @@
 extends Control
+signal confirmed_requested(character_index: int, tool_index: int)
 ## 角色选择界面 · 占位交互脚本
 ## 包含：页签切换 / 角色选择（箭头+框选+模型颜色+名称联动）/ 工具选择（框选+属性联动）/ 确认切换
 ## 程序接入后可整体替换或逐个函数改造，数据结构见下方常量。
 
-const CHAR_NAMES := ["角色名1", "角色名2", "角色名3", "角色名4", "角色名5", "角色名6"]
+const CHAR_NAMES := ["寸头哥", "白毛男", "粉毛女", "蓝毛男", "黄毛女", "黑毛男"]
+## 每个角色的大头照（左侧列表 + 详细信息页共用），与 CHAR_MODELS 顺序一一对应
+const CHAR_PORTRAITS := [
+	"res://assets/characters/portraits/char_01_cuntou.jpg",
+	"res://assets/characters/portraits/char_02_baimao.jpg",
+	"res://assets/characters/portraits/char_03_fenmao.jpg",
+	"res://assets/characters/portraits/char_04_lanmao.png",
+	"res://assets/characters/portraits/char_05_huangmao.jpg",
+	"res://assets/characters/portraits/char_06_hemao.jpg",
+]
 ## 每个角色的模型（glTF 2.0 二进制 .glb，Godot 会自动导入为场景）
 ## 换成正式模型时只改这里；模型会自动脚底贴地台、XZ 居中
 const CHAR_MODELS := [
@@ -43,6 +53,8 @@ const COLOR_STATUS_WAIT := Color(0.62, 0.63, 0.68)
 @onready var char_scroll: ScrollContainer = $CharList
 @onready var arrow: Label = $ArrowIndicator
 @onready var name_label: Label = $NameTag/Label
+@onready var detail_avatar: TextureRect = $RightPanel/DetailPage/PageLeft/VBox/HeaderRow/AvatarFrame/Avatar
+@onready var detail_name: Label = $RightPanel/DetailPage/PageLeft/VBox/HeaderRow/NameCol/NameLabel
 @onready var model_holder: Node3D = $ModelPreview/SubViewport/CharacterPlaceholder/ModelHolder
 @onready var preview: SubViewportContainer = $ModelPreview
 @onready var cam: Camera3D = $ModelPreview/SubViewport/Camera3D
@@ -63,6 +75,13 @@ const COLOR_STATUS_WAIT := Color(0.62, 0.63, 0.68)
 
 @onready var btn_confirm: Button = $BtnConfirm
 @onready var p1_status: Label = $TeamSlots/P1/Status
+## 右下队友框的大头照：P1（主控）跟随当前选择，P2~P4 是其他玩家的占位头像
+@onready var team_avatars: Array = [
+	$TeamSlots/P1/Frame/Avatar,
+	$TeamSlots/P2/Frame/Avatar,
+	$TeamSlots/P3/Frame/Avatar,
+	$TeamSlots/P4/Frame/Avatar,
+]
 
 var selected_char := 0
 var selected_tool := 0
@@ -139,6 +158,11 @@ func _apply_character(index: int) -> void:
 	_apply_model(index)
 
 	name_label.text = CHAR_NAMES[index]
+	# 详细信息页的大头照与名字跟着换
+	detail_avatar.texture = load(CHAR_PORTRAITS[index])
+	detail_name.text = CHAR_NAMES[index]
+	# 右下 1P（主控）队友框的大头照跟随所选角色
+	team_avatars[0].texture = load(CHAR_PORTRAITS[index])
 
 
 ## ---- 模型展示：只让模型原地转台自转，相机与地台完全固定 ----
@@ -294,3 +318,5 @@ func _toggle_confirm() -> void:
 	btn_confirm.modulate = Color(1.0, 0.85, 0.85) if confirmed else Color.WHITE
 	p1_status.text = "已确认" if confirmed else "选择中…"
 	p1_status.add_theme_color_override("font_color", COLOR_STATUS_OK if confirmed else COLOR_STATUS_WAIT)
+	if confirmed:
+		confirmed_requested.emit(selected_char, selected_tool)
