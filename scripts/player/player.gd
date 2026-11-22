@@ -46,9 +46,10 @@ func take_hit(amount: int = 1) -> void:
 func _go_down() -> void:
 	is_down = true
 	velocity = Vector3.ZERO
-	set_physics_process(false)
-	# 躺平：绕前进轴滚 90 度，顺便压暗
+	# 注意：不要关 _physics_process。倒地只是不响应输入，
+	# 但还得继续被矿车带着走（_clamp_to_platform 必须照常跑）。
 	visual.rotation.z = PI * 0.5
+	visual.position.y = 0.5
 	downed.emit(self)
 
 
@@ -96,6 +97,18 @@ func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
 # ---------------------------------------------------------------- 移动
 
 func _physics_process(delta: float) -> void:
+	if is_down:
+		# 倒地：不吃输入，但仍然受重力、仍然被平台带走
+		velocity.x = move_toward(velocity.x, 0.0, ground_friction * delta)
+		velocity.z = move_toward(velocity.z, 0.0, ground_friction * delta)
+		if is_on_floor():
+			velocity.y = 0.0
+		else:
+			velocity.y -= gravity * delta
+		move_and_slide()
+		_clamp_to_platform()
+		return
+
 	var input := Input.get_vector(
 		action_prefix + "_left", action_prefix + "_right",
 		action_prefix + "_forward", action_prefix + "_back")

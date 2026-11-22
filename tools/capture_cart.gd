@@ -126,6 +126,12 @@ func _ready() -> void:
 	print("面朝打怪：正面还在=%s  背后还在=%s  P1 HP %d→%d" % [
 		is_instance_valid(front), is_instance_valid(back), hp_before, p1.hp])
 
+	# 倒地玩家应该继续跟着矿车走
+	p2.take_hit(9)
+	await get_tree().create_timer(0.2).timeout
+	var local_before: Vector3 = cart.to_local(p2.global_position)
+	var cart_z_before: float = cart.global_position.z
+
 	# 走深一点，复现「已挖 50+ / 11 米」时的画面
 	var deep_z: int = int(floor(cart.global_position.z)) - 2
 	for row in 26:
@@ -133,7 +139,10 @@ func _ready() -> void:
 			for j in range(0, 3):
 				get_node("MinePlayground/VoxelWorld").break_block(Vector3i(i, j, deep_z - row))
 	await get_tree().create_timer(7.0).timeout
-	print("走深后：矿车 z=%.2f" % cart.global_position.z)
+	var local_after: Vector3 = cart.to_local(p2.global_position)
+	print("走深后：矿车前进 %.2f 米" % (cart_z_before - cart.global_position.z))
+	print("倒地玩家 P2：相对车 z %.2f → %.2f（应基本不变）  倒地=%s" % [
+		local_before.z, local_after.z, p2.is_down])
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(DIR + "deep.png")
 
