@@ -1,5 +1,5 @@
 extends Node3D
-## 挖矿交互：每个玩家各自高亮「前方一定距离内」的矿块，按自己的挖掘键挖掉。
+## 交互：每个玩家按自己的交互键，优先打身边的怪，没怪就挖前方高亮的矿。
 ## 鼠标不参与瞄准，只留给 UI。
 
 const LINE_COLOR := Color(1.0, 0.88, 0.32, 0.95)
@@ -12,6 +12,8 @@ const OUTLINES_PER_PLAYER := 6
 @export var hud_path: NodePath
 ## 朝前最多找几格。只够到眼前，想挖就得走到车头附近。
 @export var reach_cells: int = 2
+## 能打到怪的距离
+@export var attack_range: float = 2.4
 
 var total_broken: int = 0
 var broken_by_type: Dictionary = {}
@@ -62,14 +64,16 @@ func targets_of(index: int) -> Array:
 
 func _update_player(index: int) -> void:
 	var player: Node3D = _players[index]
-	var mine_action: String = player.action_prefix + "_mine"
-	var pressed := Input.is_action_pressed(mine_action)
+	var action: String = player.action_prefix + "_interact"
+	var pressed := Input.is_action_pressed(action)
 
 	_refresh_targets(index)
 
 	# 自己记录上一帧状态：比 is_action_just_pressed 稳，不会因帧序漏掉一次按下
 	if pressed and not _was_pressed[index]:
-		_mine(index)
+		# 交互键一个键管两件事：身边有怪就打怪，否则挖矿
+		if not _try_attack(player):
+			_mine(index)
 	_was_pressed[index] = pressed
 
 
@@ -91,6 +95,28 @@ func _refresh_targets(index: int) -> void:
 		found = _world.targets_in_front(player.global_position, facing, reach_cells)
 	_targets[index] = found
 	_show(index, found)
+
+
+func _try_attack(player: Node3D) -> bool:
+	var centre: Vector3 = player.global_position + Vector3(0, 1.0, 0)
+	var best: Node3D = null
+	var best_d := attack_range
+	for c in get_tree().get_nodes_in_group("crawler"):
+		var crawler := c as Node3D
+		if crawler == null or not is_instance_valid(crawler):
+			continue
+		var d := crawler.global_position.distance_to(centre)
+		if d < best_d:
+			best_d = d
+			best = crawler
+
+	if best == null:
+		return false
+	if best.has_method("take_hit"):
+		best.take_hit(1)
+	else:
+		best.queue_free()
+	return true
 
 
 func _mine(index: int) -> void:

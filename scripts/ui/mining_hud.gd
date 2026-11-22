@@ -39,6 +39,6 @@ func _render() -> void:
 			parts.append("%s %d" % [TYPE_NAMES[key], n])
 
 	if parts.is_empty():
-		_detail.text = "P1: WASD + F    P2: 方向键 + /"
+		_detail.text = "P1: WASD + 空格     P2: 方向键 + 小键盘0"
 	else:
 		_detail.text = "  ".join(parts)

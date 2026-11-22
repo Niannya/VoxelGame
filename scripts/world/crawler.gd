@@ -5,12 +5,22 @@ extends Node3D
 @export var speed: float = 2.6
 @export var damage: int = 1
 @export var hit_range: float = 1.0
+@export var max_hp: int = 1
+
+var hp: int
 
 var _target: Node3D
 
 
 func _ready() -> void:
+	hp = max_hp
 	_target = _nearest_player()
+
+
+func take_hit(amount: int = 1) -> void:
+	hp -= amount
+	if hp <= 0:
+		queue_free()
 
 
 func _process(delta: float) -> void:

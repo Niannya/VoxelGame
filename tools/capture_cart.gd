@@ -15,7 +15,15 @@ func _ready() -> void:
 
 	await _wait_blocked(cart, 15.0)
 	var z0: float = cart.global_position.z
-	print("被挡住：矿车 z=%.2f" % z0)
+	var face_z: float = z0 - cart.deck_half_depth
+	var world_node := get_node("MinePlayground/VoxelWorld")
+	var first_ore := 9999
+	for k in range(int(floor(z0)), -80, -1):
+		if world_node.has_block(Vector3i(0, 1, k)):
+			first_ore = k
+			break
+	print("被挡住：矿车 z=%.2f  车头 z=%.2f  矿面 z=%.2f  空档 %.2f 格" % [
+		z0, face_z, first_ore + 0.5, (face_z - (first_ore + 0.5))])
 
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(DIR + "cart_blocked.png")
@@ -60,27 +68,32 @@ func _ready() -> void:
 
 	# 一人挖一列，交替按各自的键
 	var before: int = mining.total_broken
-	Input.action_press("p1_mine")
+	Input.action_press("p1_interact")
 	await get_tree().create_timer(0.1).timeout
-	Input.action_release("p1_mine")
+	Input.action_release("p1_interact")
 	await get_tree().create_timer(0.1).timeout
-	Input.action_press("p2_mine")
+	Input.action_press("p2_interact")
 	await get_tree().create_timer(0.1).timeout
-	Input.action_release("p2_mine")
+	Input.action_release("p2_interact")
 	await get_tree().create_timer(0.15).timeout
 	print("两人各按一次，共挖掉 %d 块" % (mining.total_broken - before))
 
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(DIR + "cart_moved.png")
 
-	# 爬虫贴脸验证
+	# 打怪验证：爬虫放在攻击范围内，按交互键应当把它打掉
 	var run_mgr := get_node("MinePlayground/RunManager")
 	var c: Node3D = load("res://scenes/world/crawler.tscn").instantiate()
 	c.add_to_group("crawler")
 	run_mgr.add_child(c)
-	c.global_position = p1.global_position + Vector3(0, 1.0, 1.5)
-	await get_tree().create_timer(1.2).timeout
-	print("P1 被咬后 HP = %d / 3" % p1.hp)
+	c.global_position = p1.global_position + Vector3(0, 1.0, -1.8)
+	await get_tree().create_timer(0.2).timeout
+	var hp_before: int = p1.hp
+	Input.action_press("p1_interact")
+	await get_tree().create_timer(0.1).timeout
+	Input.action_release("p1_interact")
+	await get_tree().create_timer(0.3).timeout
+	print("打怪：爬虫还在=%s   P1 HP %d → %d" % [is_instance_valid(c), hp_before, p1.hp])
 
 	# 走深一点，复现「已挖 50+ / 11 米」时的画面
 	var deep_z: int = int(floor(cart.global_position.z)) - 2

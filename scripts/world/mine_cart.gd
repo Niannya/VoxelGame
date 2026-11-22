@@ -6,6 +6,8 @@ extends AnimatableBody3D
 @export var speed: float = 2.2
 @export var deck_half_width: float = 3.0
 @export var deck_half_depth: float = 4.5
+## 停在矿前面留出的空档（格）
+@export var stop_gap: float = 1.0
 @export var body_below: float = 0.95
 @export var clearance_height: float = 1.95
 
@@ -28,11 +30,11 @@ func _physics_process(delta: float) -> void:
 	var step := speed * delta
 	var next := global_position + Vector3(0, 0, -step)
 
-	# 用车身包围盒探前方一格，有矿就停住，等玩家挖开
+	# 探测范围比车身多出一格：矿车停在矿的前一格，不贴着矿面
 	blocked = _world.is_blocked_at(
 		next,
 		deck_half_width,
-		deck_half_depth,
+		deck_half_depth + stop_gap,
 		global_position.y - body_below,
 		global_position.y + clearance_height)
 
