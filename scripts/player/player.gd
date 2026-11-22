@@ -66,7 +66,7 @@ func set_character_model(packed: PackedScene) -> void:
 	visual.add_child(model)
 	var box := _model_bounds(model)
 	if box.size.y > 0.0:
-		var scale_factor := 1.5 / box.size.y
+		var scale_factor := 2.0 / box.size.y   # 角色规格 1×1×2，模型按 2 高归一
 		model.scale = Vector3.ONE * scale_factor
 		model.position = Vector3(
 			-(box.position.x + box.size.x * 0.5) * scale_factor,

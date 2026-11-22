@@ -56,8 +56,14 @@ func _start_game() -> void:
 	var mine := MINE_PLAYGROUND.instantiate()
 	_active_scene = mine
 	add_child(mine)
-	var model := load(CHARACTER_MODELS[selected_character]) as PackedScene
-	mine.get_node("Player").set_character_model(model)
+	# 双人：P1 用选中的角色，P2 顺延取下一个（暂时占位，等 P2 也能自己选再改）
+	var players := get_tree().get_nodes_in_group("player")
+	for i in players.size():
+		var node := players[i]
+		if not node.has_method("set_character_model"):
+			continue
+		var pick := (selected_character + i) % CHARACTER_MODELS.size()
+		node.set_character_model(load(CHARACTER_MODELS[pick]) as PackedScene)
 	_add_end_run_button()
 
 
