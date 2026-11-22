@@ -10,8 +10,8 @@ const OUTLINES_PER_PLAYER := 6
 @export var player_paths: Array[NodePath] = []
 @export var world_path: NodePath
 @export var hud_path: NodePath
-## 朝前最多找几格。只够到眼前，想挖就得走到车头附近。
-@export var reach_cells: int = 2
+## 够得着的距离（米，从玩家到矿面）
+@export var reach_distance: float = 3.0
 ## 能打到怪的距离
 @export var attack_range: float = 2.4
 ## 攻击扇形的一半角度：必须面朝怪才打得到
@@ -94,7 +94,7 @@ func _refresh_targets(index: int) -> void:
 
 	var found: Array[Vector3i] = []
 	if _world != null:
-		found = _world.targets_in_front(player.global_position, facing, reach_cells)
+		found = _world.targets_in_front(player.global_position, facing, reach_distance)
 	_targets[index] = found
 	_show(index, found)
 

@@ -25,8 +25,32 @@ func _ready() -> void:
 	print("被挡住：矿车 z=%.2f  车头 z=%.2f  矿面 z=%.2f  空档 %.2f 格" % [
 		z0, face_z, first_ore + 0.5, (face_z - (first_ore + 0.5))])
 
-	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(DIR + "cart_blocked.png")
+	# 直接调世界函数量窗口，避开帧序干扰
+	var lo := 99.0
+	var hi := -99.0
+	var probe: float = cart.global_position.z + 4.0
+	while probe > cart.global_position.z - 4.0:
+		var hit: Array = world_node.targets_in_front(
+			Vector3(-1.5, cart.global_position.y + 0.05, probe), Vector3(0, 0, -1), mining.reach_distance)
+		if not hit.is_empty():
+			lo = minf(lo, probe)
+			hi = maxf(hi, probe)
+		probe -= 0.1
+	print("够得着的窗口：z %.2f ~ %.2f（宽 %.2f 米，reach=%.1f）" % [lo, hi, hi - lo, mining.reach_distance])
+	# 自然流程：只按 D 走到车头，然后按交互键
+	print("P1 出生 z=%.2f，高亮 %d 块" % [p1.global_position.z, mining.targets_of(0).size()])
+	Input.action_press("p1_right")
+	await get_tree().create_timer(1.6).timeout
+	Input.action_release("p1_right")
+	await get_tree().create_timer(0.3).timeout
+	print("按 D 走到 z=%.2f，高亮 %d 块：%s" % [
+		p1.global_position.z, mining.targets_of(0).size(), mining.targets_of(0)])
+	var nb: int = mining.total_broken
+	Input.action_press("p1_interact")
+	await get_tree().create_timer(0.1).timeout
+	Input.action_release("p1_interact")
+	await get_tree().create_timer(0.2).timeout
+	print("按空格后，挖掉 %d 块" % (mining.total_broken - nb))
 
 	# 相机稳定性 + 移动轴方向
 	var cam := get_viewport().get_camera_3d()

@@ -256,37 +256,41 @@ func is_breakable(pos: Vector3i) -> bool:
 	return true
 
 
-func targets_in_front(from: Vector3, facing: Vector3, reach: int) -> Array[Vector3i]:
+const SCAN_CELLS := 10
+
+
+func targets_in_front(from: Vector3, facing: Vector3, reach: float) -> Array[Vector3i]:
 	## 从玩家所在格沿朝向推进，取最近的一「片」可挖方块（同一列上所有高度）。
+	## reach 是世界距离（米）：按格子数算的话，玩家格子号在 0.5 米边界上会跳变，
+	## 够得着的范围会变成一段一段的，手感很怪。
 	var out: Array[Vector3i] = []
 	if facing.length_squared() < 0.0001:
 		return out
 
 	var d := facing.normalized()
-	if absf(d.x) >= absf(d.z):
-		var dir := 1 if d.x > 0.0 else -1
-		var start_i := cell_of(0, from.x)
-		var fixed_k := cell_of(2, from.z)
-		for s in range(1, reach + 1):
-			var i := start_i + dir * s
-			for j in range(0, interior_height):
-				var p := Vector3i(i, j, fixed_k)
-				if is_breakable(p):
-					out.append(p)
-			if not out.is_empty():
-				return out
-	else:
-		var dir := 1 if d.z > 0.0 else -1
-		var start_k := cell_of(2, from.z)
-		var fixed_i := cell_of(0, from.x)
-		for s in range(1, reach + 1):
-			var k := start_k + dir * s
-			for j in range(0, interior_height):
-				var p := Vector3i(fixed_i, j, k)
-				if is_breakable(p):
-					out.append(p)
-			if not out.is_empty():
-				return out
+	var along_x := absf(d.x) >= absf(d.z)
+	var axis := 0 if along_x else 2
+	var dir := 1 if (d.x if along_x else d.z) > 0.0 else -1
+	var start := cell_of(axis, from[axis])
+	var fixed := cell_of(2 if along_x else 0, from[2 if along_x else 0])
+	var half := BLOCK[axis] * 0.5
+
+	for step in range(1, SCAN_CELLS + 1):
+		var c := start + dir * step
+		var slice: Array[Vector3i] = []
+		for j in range(0, interior_height):
+			var p := Vector3i(c, j, fixed) if along_x else Vector3i(fixed, j, c)
+			if is_breakable(p):
+				slice.append(p)
+		if slice.is_empty():
+			continue
+
+		# 玩家到这一片近面的距离
+		var gap: float = absf(from[axis] - float(c) * BLOCK[axis]) - half
+		if gap > reach:
+			return []
+		return slice
+
 	return out
 
 
