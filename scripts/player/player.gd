@@ -1,4 +1,5 @@
 extends CharacterBody3D
+const CharacterAnimation = preload("res://scripts/player/character_animation.gd")
 ## 可移动的矿工占位单位。
 ## 移动方向按屏幕方向解释：按 W 往画面深处走，A/D 左右平移。
 ## 本节点自身不旋转（相机是它的子节点），只有 Visual 子节点转向。
@@ -18,6 +19,7 @@ extends CharacterBody3D
 @onready var _cam: Camera3D = $Camera3D
 
 var _platform: Node3D
+var _character_animation
 
 
 func _ready() -> void:
@@ -25,7 +27,7 @@ func _ready() -> void:
 		_platform = get_node_or_null(platform_path)
 
 
-func set_character_model(packed: PackedScene) -> void:
+func set_character_model(packed: PackedScene, tool_index: int = 0) -> void:
 	if packed == null:
 		return
 	var model := packed.instantiate() as Node3D
@@ -43,6 +45,9 @@ func set_character_model(packed: PackedScene) -> void:
 			-(box.position.z + box.size.z * 0.5) * scale_factor
 		)
 	model.rotation.y = PI
+	_character_animation = CharacterAnimation.new()
+	model.add_child(_character_animation)
+	_character_animation.configure(model, tool_index)
 	for child_name in ["Body", "Visor", "Helmet", "Lamp"]:
 		visual.get_node(child_name).visible = false
 
@@ -65,6 +70,8 @@ func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
 
 
 func _physics_process(delta: float) -> void:
+	if Input.is_action_just_pressed("mine") and _character_animation != null:
+		_character_animation.play_tool_action()
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	# 相机偏航后，屏幕上方不再等于世界 -Z，得把输入方向一起转过去
 	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _cam.global_rotation.y)

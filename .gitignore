@@ -19,5 +19,8 @@ mono_crash.*.json
 Thumbs.db
 *.swp
 
+# Blender 自动备份（assets/characters/rigged_sources 里的 .blend1，不入库）
+*.blend1
+
 # Agent workspace (memory notes, verification screenshots)
 .workbuddy/

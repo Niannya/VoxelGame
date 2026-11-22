@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cq2xwt1aoab22"
-path="res://.godot/imported/char_03_fenmao.glb-fa8c679d74d51841302d6152695b76d5.scn"
+uid="uid://bhw8mjq4pbm0u"
+path="res://.godot/imported/char_01_cuntou.glb-f754fca72794a62f814d2257c833a0f3.scn"
 
 [deps]
 
-source_file="res://assets/characters/char_03_fenmao.glb"
-dest_files=["res://.godot/imported/char_03_fenmao.glb-fa8c679d74d51841302d6152695b76d5.scn"]
+source_file="res://assets/characters/rigged/char_01_cuntou.glb"
+dest_files=["res://.godot/imported/char_01_cuntou.glb-f754fca72794a62f814d2257c833a0f3.scn"]
 
 [params]
 

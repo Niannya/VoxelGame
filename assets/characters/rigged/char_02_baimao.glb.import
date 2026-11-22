@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ddkna1ragkvg6"
-path="res://.godot/imported/char_04_lanmao.glb-80cf1bbb11827a07b5dd7229ebd05e0f.scn"
+uid="uid://detdraoxw5h06"
+path="res://.godot/imported/char_02_baimao.glb-5f53a6f1d89314548e44dd9204216149.scn"
 
 [deps]
 
-source_file="res://assets/characters/char_04_lanmao.glb"
-dest_files=["res://.godot/imported/char_04_lanmao.glb-80cf1bbb11827a07b5dd7229ebd05e0f.scn"]
+source_file="res://assets/characters/rigged/char_02_baimao.glb"
+dest_files=["res://.godot/imported/char_02_baimao.glb-5f53a6f1d89314548e44dd9204216149.scn"]
 
 [params]
 
