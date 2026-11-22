@@ -14,7 +14,8 @@ var _target: Node3D
 
 func _ready() -> void:
 	hp = max_hp
-	_target = _nearest_player()
+	# 不在这里选目标：调用方通常是 add_child 之后才设位置，
+	# 留到第一帧再找，否则会按出生点 (0,0,0) 去选人。
 
 
 func take_hit(amount: int = 1) -> void:

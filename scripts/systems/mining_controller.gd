@@ -14,6 +14,8 @@ const OUTLINES_PER_PLAYER := 6
 @export var reach_cells: int = 2
 ## 能打到怪的距离
 @export var attack_range: float = 2.4
+## 攻击扇形的一半角度：必须面朝怪才打得到
+@export var attack_half_angle_deg: float = 60.0
 
 var total_broken: int = 0
 var broken_by_type: Dictionary = {}
@@ -99,16 +101,29 @@ func _refresh_targets(index: int) -> void:
 
 func _try_attack(player: Node3D) -> bool:
 	var centre: Vector3 = player.global_position + Vector3(0, 1.0, 0)
+	var facing := Vector3.FORWARD
+	if player.has_method("facing_dir"):
+		facing = player.facing_dir()
+	var min_dot := cos(deg_to_rad(attack_half_angle_deg))
+
 	var best: Node3D = null
 	var best_d := attack_range
 	for c in get_tree().get_nodes_in_group("crawler"):
 		var crawler := c as Node3D
 		if crawler == null or not is_instance_valid(crawler):
 			continue
-		var d := crawler.global_position.distance_to(centre)
-		if d < best_d:
-			best_d = d
-			best = crawler
+
+		var to := crawler.global_position - centre
+		to.y = 0.0
+		var d := to.length()
+		if d >= best_d:
+			continue
+		# 背对着的怪打不到
+		if d > 0.05 and to.normalized().dot(facing) < min_dot:
+			continue
+
+		best_d = d
+		best = crawler
 
 	if best == null:
 		return false

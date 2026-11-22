@@ -81,19 +81,26 @@ func _ready() -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(DIR + "cart_moved.png")
 
-	# 打怪验证：爬虫放在攻击范围内，按交互键应当把它打掉
+	# 面朝打怪：正面那个应该被打掉，背后那个应该打不到
 	var run_mgr := get_node("MinePlayground/RunManager")
-	var c: Node3D = load("res://scenes/world/crawler.tscn").instantiate()
-	c.add_to_group("crawler")
-	run_mgr.add_child(c)
-	c.global_position = p1.global_position + Vector3(0, 1.0, -1.8)
-	await get_tree().create_timer(0.2).timeout
+	var front: Node3D = load("res://scenes/world/crawler.tscn").instantiate()
+	front.add_to_group("crawler")
+	run_mgr.add_child(front)
+	front.global_position = p1.global_position + Vector3(0, 1.0, -2.2)
+
+	var back: Node3D = load("res://scenes/world/crawler.tscn").instantiate()
+	back.add_to_group("crawler")
+	run_mgr.add_child(back)
+	back.global_position = p1.global_position + Vector3(0, 1.0, 2.2)
+
+	await get_tree().create_timer(0.12).timeout
 	var hp_before: int = p1.hp
 	Input.action_press("p1_interact")
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.08).timeout
 	Input.action_release("p1_interact")
-	await get_tree().create_timer(0.3).timeout
-	print("打怪：爬虫还在=%s   P1 HP %d → %d" % [is_instance_valid(c), hp_before, p1.hp])
+	await get_tree().create_timer(0.15).timeout
+	print("面朝打怪：正面还在=%s  背后还在=%s  P1 HP %d→%d" % [
+		is_instance_valid(front), is_instance_valid(back), hp_before, p1.hp])
 
 	# 走深一点，复现「已挖 50+ / 11 米」时的画面
 	var deep_z: int = int(floor(cart.global_position.z)) - 2
