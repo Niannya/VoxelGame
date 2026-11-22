@@ -74,6 +74,13 @@ const COLOR_STATUS_WAIT := Color(0.62, 0.63, 0.68)
 
 @onready var btn_confirm: Button = $BtnConfirm
 @onready var p1_status: Label = $TeamSlots/P1/Status
+## 右下队友框的大头照：P1（主控）跟随当前选择，P2~P4 是其他玩家的占位头像
+@onready var team_avatars: Array = [
+	$TeamSlots/P1/Frame/Avatar,
+	$TeamSlots/P2/Frame/Avatar,
+	$TeamSlots/P3/Frame/Avatar,
+	$TeamSlots/P4/Frame/Avatar,
+]
 
 var selected_char := 0
 var selected_tool := 0
@@ -153,6 +160,8 @@ func _apply_character(index: int) -> void:
 	# 详细信息页的大头照与名字跟着换
 	detail_avatar.texture = load(CHAR_PORTRAITS[index])
 	detail_name.text = CHAR_NAMES[index]
+	# 右下 1P（主控）队友框的大头照跟随所选角色
+	team_avatars[0].texture = load(CHAR_PORTRAITS[index])
 
 
 ## ---- 模型展示：只让模型原地转台自转，相机与地台完全固定 ----
