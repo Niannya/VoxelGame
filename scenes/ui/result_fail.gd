@@ -45,6 +45,13 @@ const ORES := [
 		"desc": "炽热的红色宝石，仿佛内部藏着火焰。是本局挖到的最珍贵矿石，值得炫耀！"},
 ]
 
+const RUN_ORE_TYPES := [
+	{"key": "gold", "name": "黄金", "color": Color(0.96, 0.79, 0.32), "desc": "本局挖出的黄金。"},
+	{"key": "quartz", "name": "石英", "color": Color(0.73, 0.81, 0.90), "desc": "本局挖出的石英。"},
+	{"key": "diamond", "name": "钻石", "color": Color(0.42, 0.77, 0.86), "desc": "本局挖出的钻石。"},
+	{"key": "emerald", "name": "绿宝石", "color": Color(0.40, 0.78, 0.50), "desc": "本局挖出的绿宝石。"},
+]
+
 const CHAR_MODELS := [
 	"res://assets/characters/char_01_cuntou.glb",
 	"res://assets/characters/char_02_baimao.glb",
@@ -81,6 +88,11 @@ const PORTRAIT_CAM_DIST := 2.6
 @onready var btn_ore_right: Button = $TeamPanel/Margin/VBox/OreWrap/BtnOreRight
 
 var _portrait_views: Array[SubViewport] = []
+var run_character_index: int = -1
+var run_distance: int = -1
+var run_ore_counts: Dictionary = {}
+var _players: Array = []
+var _ores: Array = []
 
 ## 矿石悬浮窗（跟随鼠标）
 var _tip: PanelContainer
@@ -90,6 +102,16 @@ var _tip_owner_slot: Control = null
 
 
 func _ready() -> void:
+	_players = PLAYERS.duplicate(true)
+	_ores = ORES.duplicate(true)
+	if run_character_index >= 0:
+		_players[2]["char"] = clampi(run_character_index, 0, CHAR_MODELS.size() - 1)
+	if run_distance >= 0:
+		_ores.clear()
+		for template in RUN_ORE_TYPES:
+			var ore: Dictionary = template.duplicate()
+			ore["count"] = int(run_ore_counts.get(ore["key"], 0))
+			_ores.append(ore)
 	_fill_players()
 	_fill_team()
 	_build_ore_slots()
@@ -106,8 +128,8 @@ func _ready() -> void:
 # ---------------------------------------------------------------- 玩家榜
 
 func _fill_players() -> void:
-	for i in PLAYERS.size():
-		var p: Dictionary = PLAYERS[i]
+	for i in _players.size():
+		var p: Dictionary = _players[i]
 		var base := "Board/Margin/VBox/Row%d/HBox" % (i + 1)
 		var rank: Label = get_node(base + "/Rank")
 		var portrait: PanelContainer = get_node(base + "/Portrait")
@@ -143,14 +165,23 @@ func _portrait_style(is_main: bool) -> StyleBoxFlat:
 
 # ---------------------------------------------------------------- 团队结算
 
+func _count_run_ores() -> int:
+	var total := 0
+	for ore in _ores:
+		total += int(ore.count)
+	return total
+
 func _fill_team() -> void:
 	$TeamPanel/Margin/VBox/LvRow/LvPill/Value.text = "Lv. %d" % TEAM.cart_level
-	$TeamPanel/Margin/VBox/DistRow/Value.text = "%d m" % TEAM.distance
-	$TeamPanel/Margin/VBox/BestRow/Label.text = "前进距离最高记录  %d m" % TEAM.best
+	$TeamPanel/Margin/VBox/DistRow/Value.text = "%d m" % (run_distance if run_distance >= 0 else TEAM.distance)
+	if run_distance >= 0:
+		$TeamPanel/Margin/VBox/BestRow/Label.text = "本局已挖矿石  %d 个" % _count_run_ores()
+	else:
+		$TeamPanel/Margin/VBox/BestRow/Label.text = "前进距离最高记录  %d m" % TEAM.best
 
 	var total := 0
 	var kinds := 0
-	for ore in ORES:
+	for ore in _ores:
 		total += int(ore.count)
 		if int(ore.count) > 0:
 			kinds += 1
@@ -163,7 +194,7 @@ func _build_ore_slots() -> void:
 	var template := ore_row.get_node("Template") as PanelContainer
 	template.visible = false
 	var index := 0
-	for ore in ORES:
+	for ore in _ores:
 		if int(ore.count) <= 0:
 			continue
 		var slot := template.duplicate() as PanelContainer
@@ -306,8 +337,8 @@ func _update_arrow_state() -> void:
 ## 每个玩家一个 SubViewport，拍角色头部特写；渲染几帧后切到 UPDATE_ONCE 就不再占 GPU
 func _build_portraits() -> void:
 	await get_tree().process_frame
-	for i in PLAYERS.size():
-		var p: Dictionary = PLAYERS[i]
+	for i in _players.size():
+		var p: Dictionary = _players[i]
 		var ci: int = clampi(int(p.char), 0, CHAR_MODELS.size() - 1)
 		var holder: PanelContainer = get_node("Board/Margin/VBox/Row%d/HBox/Portrait" % (i + 1))
 		_make_portrait(holder, CHAR_MODELS[ci])
@@ -407,6 +438,4 @@ func _model_aabb(root: Node) -> AABB:
 # ---------------------------------------------------------------- 返回
 
 func _on_back_pressed() -> void:
-	# 只发信号，不做任何跳转。准备间界面做好后由外部代码接管（连接 back_requested 或调用本方法）
 	back_requested.emit()
-	print("[ResultFail] 返回准备间（信号已发出，等待外部接管）")

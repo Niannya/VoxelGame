@@ -1,4 +1,5 @@
 extends Control
+signal confirmed_requested(character_index: int, tool_index: int)
 ## 角色选择界面 · 占位交互脚本
 ## 包含：页签切换 / 角色选择（箭头+框选+模型颜色+名称联动）/ 工具选择（框选+属性联动）/ 确认切换
 ## 程序接入后可整体替换或逐个函数改造，数据结构见下方常量。
@@ -317,3 +318,5 @@ func _toggle_confirm() -> void:
 	btn_confirm.modulate = Color(1.0, 0.85, 0.85) if confirmed else Color.WHITE
 	p1_status.text = "已确认" if confirmed else "选择中…"
 	p1_status.add_theme_color_override("font_color", COLOR_STATUS_OK if confirmed else COLOR_STATUS_WAIT)
+	if confirmed:
+		confirmed_requested.emit(selected_char, selected_tool)
