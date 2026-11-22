@@ -135,11 +135,21 @@ func _try_attack(player: Node3D) -> bool:
 
 
 func _mine(index: int) -> void:
+	## 一次只挖一块：从高亮的那一列里挑离玩家胸口最近的一块打掉。
+	## 剩下的继续高亮，玩家得再按一次才挖下一块。
 	var list: Array = _targets[index]
 	if list.is_empty():
 		return
-	for pos in list.duplicate():
-		_world.break_block(pos)
+	var chest: float = _players[index].global_position.y + 1.0
+	var best: Vector3i = list[0]
+	var best_gap := INF
+	for pos in list:
+		var block_y: float = float(pos.y) * _block_size.y
+		var gap: float = absf(block_y - chest)
+		if gap < best_gap:
+			best_gap = gap
+			best = pos
+	_world.break_block(best)
 	_refresh_targets(index)
 
 

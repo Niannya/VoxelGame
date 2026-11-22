@@ -50,5 +50,5 @@ horizontal_alignment = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.72, 0.76, 1)
 theme_override_font_sizes/font_size = 14
-text = "对着方块长按左键开挖"
+text = "对着方块按交互键开挖（一次一块）"
 horizontal_alignment = 2
