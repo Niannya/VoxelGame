@@ -15,7 +15,6 @@ extends CharacterBody3D
 @export var platform_margin: float = 0.42
 
 @onready var visual: Node3D = $Visual
-@onready var _cam: Camera3D = $Camera3D
 
 var _platform: Node3D
 
@@ -66,8 +65,9 @@ func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
 
 func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	# 相机偏航后，屏幕上方不再等于世界 -Z，得把输入方向一起转过去
-	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _cam.global_rotation.y)
+	# 相机偏航后，屏幕上方不再等于世界 -Z，得把输入方向一起转过去。
+	# 相机挂在矿车上而不是玩家身上，所以这里取当前生效的相机，不写死路径。
+	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _camera_yaw())
 
 	if dir.length_squared() > 0.001:
 		dir = dir.normalized()
@@ -89,6 +89,11 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_clamp_to_platform()
+
+
+func _camera_yaw() -> float:
+	var cam := get_viewport().get_camera_3d()
+	return cam.global_rotation.y if cam != null else 0.0
 
 
 func _clamp_to_platform() -> void:

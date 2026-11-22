@@ -56,3 +56,11 @@ surface_material_override/0 = SubResource("Mat_rim")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.74, 0.09, 0)
 mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(2.5, 3.8, 0.3)
+rotation_degrees = Vector3(-55, 72, 0)
+fov = 50.0
+near = 0.1
+far = 200.0
+current = true

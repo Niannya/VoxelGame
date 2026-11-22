@@ -45,4 +45,16 @@ func _ready() -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(DIR + "cart_moved.png")
 
+	# 矿车停住时玩家在平台上走动，相机应当纹丝不动
+	var cam := get_viewport().get_camera_3d()
+	var p0: Vector3 = player.global_position
+	var c0: Vector3 = cam.global_position
+	Input.action_press("move_left")
+	await get_tree().create_timer(0.45).timeout
+	Input.action_release("move_left")
+	await get_tree().create_timer(0.25).timeout
+	print("玩家在平台走动：人移动 %.2f，相机移动 %.2f" % [
+		(player.global_position - p0).length(),
+		(cam.global_position - c0).length()])
+
 	get_tree().quit(0)

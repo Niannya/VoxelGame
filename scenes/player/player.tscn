@@ -77,11 +77,3 @@ light_color = Color(1, 0.93, 0.78, 1)
 light_energy = 1.6
 omni_range = 6.0
 shadow_enabled = false
-
-[node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(2.5, 3.8, 0.3)
-rotation_degrees = Vector3(-55, 72, 0)
-fov = 50.0
-near = 0.1
-far = 200.0
-current = true
