@@ -10,13 +10,13 @@ const BLOCK := 1.0
 var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9999, 0))
 
 @export var rng_seed: int = 20261120
-@export var interior_half_width: int = 4   # 内部半宽（块），4 => 9 格宽
-@export var interior_height: int = 6       # 填矿高度（块）
+@export var interior_half_width: int = 1   # 内部半宽（块），1 => 矿道净宽 3 格
+@export var interior_height: int = 3       # 填矿高度（块）—— 一面矿 3×3
 @export var tunnel_length: int = 40        # 纵深（块）
 @export var z_start: int = 6               # 起始空腔尾端 z
 @export var chamber_length: int = 7        # 起始空腔长度
 @export var cutaway_behind: float = 9.0    # 矿车前缘往后多远内的未挖方块要隐藏
-@export var cutaway_min_height: int = 2    # 只隐藏这个高度以上的方块，保住通道两侧的矮墙
+@export var cutaway_min_height: int = 3    # 只隐藏这个高度以上的方块；矿体只有 3 格高，等于不裁
 ## +X 侧最后生成到哪一列。相机在 +X 侧往 -X 看，所以这一侧不砌墙，否则全被挡住。
 @export var near_edge_cell: int = 1
 
@@ -57,10 +57,10 @@ func _fill_grid() -> void:
 	var chamber_end := chamber_end_z()
 	var near_edge := near_edge_cell   # +X 侧只铺到这一列，再往外不生成，留给侧向机位看进来
 
-	# 地板铺满整个宽度（近侧也要有，否则侧视会在画面下方露出虚空）；
+	# 地板铺到底（近侧多留一格当落地边，否则侧视会在画面下方露出虚空）；
 	# 矿壁和矿体只到 near_edge 为止。
 	for k in range(z_lo, z_start + 1):
-		for i in range(-hw - 1, hw + 1):
+		for i in range(-hw - 1, hw + 2):
 			grid[Vector3i(i, -1, k)] = _pick(0.05)
 			grid[Vector3i(i, -2, k)] = _pick(0.05)
 		for j in range(-2, h + 1):
@@ -73,7 +73,7 @@ func _fill_grid() -> void:
 				grid[Vector3i(i, j, k)] = _pick(0.12)
 
 	# 空腔尾墙，避免回望看到虚空
-	for i in range(-hw - 1, hw + 1):
+	for i in range(-hw - 1, hw + 2):
 		for j in range(-2, h):
 			grid[Vector3i(i, j, z_start + 1)] = _pick(0.08)
 

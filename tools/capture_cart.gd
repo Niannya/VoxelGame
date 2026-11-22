@@ -29,7 +29,7 @@ func _ready() -> void:
 	# 挖开五排 3 宽 × 2 高，让矿车真正进入矿层
 	for row in 5:
 		for i in range(-1, 2):
-			for j in range(0, 2):
+			for j in range(0, 3):
 				world.break_block(Vector3i(i, j, block_z - row))
 
 	await get_tree().create_timer(3.0).timeout

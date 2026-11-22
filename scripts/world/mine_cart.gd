@@ -4,9 +4,9 @@ extends AnimatableBody3D
 
 @export var world_path: NodePath
 @export var speed: float = 2.2
-@export var deck_half_width: float = 1.4
-@export var deck_half_depth: float = 1.8
-@export var clearance_height: float = 1.45
+@export var deck_half_width: float = 1.2
+@export var deck_half_depth: float = 1.3
+@export var clearance_height: float = 2.45
 
 var blocked: bool = false
 
