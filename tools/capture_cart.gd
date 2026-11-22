@@ -17,6 +17,9 @@ func _ready() -> void:
 	var z0: float = cart.global_position.z
 	print("被挡住：矿车 z=%.2f  卡住=%s" % [z0, cart.blocked])
 
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(DIR + "cart_blocked.png")
+
 	# 矿车停着时玩家走动，相机不该动
 	var cam := get_viewport().get_camera_3d()
 	var p0: Vector3 = player.global_position
