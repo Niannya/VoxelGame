@@ -12,7 +12,7 @@ extends CharacterBody3D
 @export var jump_velocity: float = 7.5
 ## 绑定移动平台后，玩家只能在平台顶面范围内活动
 @export var platform_path: NodePath
-@export var platform_margin: float = 0.5
+@export var platform_margin: float = 0.42
 
 @onready var visual: Node3D = $Visual
 @onready var _cam: Camera3D = $Camera3D
