@@ -1,0 +1,920 @@
+[gd_scene load_steps=29 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/character_select.gd" id="1_script"]
+
+[sub_resource type="SystemFont" id="SystemFont_cjk"]
+font_names = PackedStringArray("Microsoft YaHei UI", "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "sans-serif")
+
+[sub_resource type="Theme" id="Theme_ui"]
+default_font = SubResource("SystemFont_cjk")
+default_font_size = 18
+
+[sub_resource type="StyleBoxFlat" id="SB_btn_normal"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+bg_color = Color(0.17, 0.18, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.46, 0.48, 0.55, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="SB_btn_hover"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+bg_color = Color(0.24, 0.26, 0.32, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.62, 0.64, 0.7, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="SB_btn_pressed"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+bg_color = Color(0.12, 0.13, 0.16, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.62, 0.64, 0.7, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="SB_panel_dark"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+bg_color = Color(0.17, 0.18, 0.22, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.42, 0.48, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="SB_page"]
+content_margin_left = 20.0
+content_margin_top = 18.0
+content_margin_right = 20.0
+content_margin_bottom = 18.0
+bg_color = Color(0.98, 0.965, 0.92, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.25, 0.23, 0.2, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="SB_slot"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.19, 0.2, 0.24, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.44, 0.46, 0.52, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="SB_slot_selected"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.26, 0.27, 0.32, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.94, 0.75, 0.36, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="SB_slot_main"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.21, 0.23, 0.28, 1)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.94, 0.75, 0.36, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="SB_frame"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.32, 0.34, 0.4, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="SB_tab_unselected"]
+content_margin_left = 30.0
+content_margin_top = 12.0
+content_margin_right = 30.0
+content_margin_bottom = 12.0
+bg_color = Color(0.15, 0.16, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.38, 0.44, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+
+[sub_resource type="StyleBoxFlat" id="SB_tab_selected"]
+content_margin_left = 30.0
+content_margin_top = 12.0
+content_margin_right = 30.0
+content_margin_bottom = 12.0
+bg_color = Color(0.26, 0.27, 0.33, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94, 0.75, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+
+[sub_resource type="StyleBoxFlat" id="SB_bar_bg"]
+bg_color = Color(0.19, 0.2, 0.24, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.38, 0.44, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="SB_bar_fill_atk"]
+bg_color = Color(0.87, 0.45, 0.3, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="SB_bar_fill_dur"]
+bg_color = Color(0.45, 0.72, 0.55, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxEmpty" id="SB_scroll_empty"]
+
+[sub_resource type="StyleBoxFlat" id="SB_scroll_grabber"]
+bg_color = Color(0.5, 0.52, 0.58, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(0.92, 0.85, 0.55)
+
+[sub_resource type="BoxMesh" id="BoxMesh_head"]
+size = Vector3(0.62, 0.62, 0.62)
+
+[sub_resource type="BoxMesh" id="BoxMesh_leg"]
+size = Vector3(0.3, 0.55, 0.4)
+
+[sub_resource type="CylinderMesh" id="Mesh_pedestal"]
+top_radius = 0.95
+bottom_radius = 0.95
+height = 0.22
+
+[sub_resource type="StandardMaterial3D" id="Mat_body"]
+albedo_color = Color(0.42, 0.66, 0.62, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_head"]
+albedo_color = Color(0.93, 0.85, 0.71, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_leg"]
+albedo_color = Color(0.26, 0.42, 0.5, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_pedestal"]
+albedo_color = Color(0.35, 0.3, 0.26, 1)
+
+[sub_resource type="Environment" id="Env_stage"]
+background_mode = 1
+background_color = Color(0.15, 0.16, 0.2, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.6, 0.62, 0.7, 1)
+ambient_light_energy = 0.45
+
+[node name="CharacterSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_ui")
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="BtnBack" type="Button" parent="."]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 32.0
+offset_right = 300.0
+offset_bottom = 96.0
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("SB_btn_normal")
+theme_override_styles/hover = SubResource("SB_btn_hover")
+theme_override_styles/pressed = SubResource("SB_btn_pressed")
+theme_override_styles/focus = SubResource("SB_btn_hover")
+text = "←   返回准备间"
+
+[node name="TagRole" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 128.0
+offset_right = 160.0
+offset_bottom = 186.0
+theme_override_styles/panel = SubResource("SB_panel_dark")
+
+[node name="Label" type="Label" parent="TagRole"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "角色"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CharList" type="ScrollContainer" parent="."]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 204.0
+offset_right = 196.0
+offset_bottom = 852.0
+horizontal_scroll_mode = 0
+theme_override_styles/scroll = SubResource("SB_scroll_empty")
+theme_override_styles/grabber = SubResource("SB_scroll_grabber")
+theme_override_styles/grabber_highlight = SubResource("SB_scroll_grabber")
+theme_override_styles/grabber_pressed = SubResource("SB_scroll_grabber")
+
+[node name="List" type="VBoxContainer" parent="CharList"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="Slot1" type="Button" parent="CharList/List"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot_selected")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "头像 1"
+
+[node name="Slot2" type="Button" parent="CharList/List"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "头像 2"
+
+[node name="Slot3" type="Button" parent="CharList/List"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "头像 3"
+
+[node name="Slot4" type="Button" parent="CharList/List"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "头像 4"
+
+[node name="Slot5" type="Button" parent="CharList/List"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "头像 5"
+
+[node name="Slot6" type="Button" parent="CharList/List"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "头像 6"
+
+[node name="ArrowIndicator" type="Label" parent="."]
+layout_mode = 0
+offset_left = 194.0
+offset_top = 246.0
+offset_right = 234.0
+offset_bottom = 306.0
+theme_override_colors/font_color = Color(0.94, 0.75, 0.36, 1)
+theme_override_font_sizes/font_size = 34
+text = "◀"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ModelPreview" type="SubViewportContainer" parent="."]
+layout_mode = 0
+offset_left = 320.0
+offset_top = 150.0
+offset_right = 1080.0
+offset_bottom = 880.0
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="ModelPreview"]
+own_world_3d = true
+size = Vector2i(760, 730)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="ModelPreview/SubViewport"]
+environment = SubResource("Env_stage")
+
+[node name="Camera3D" type="Camera3D" parent="ModelPreview/SubViewport"]
+fov = 45.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="ModelPreview/SubViewport/Camera3D"]
+rotation_degrees = Vector3(-16, -22, 0)
+light_energy = 1.0
+
+[node name="FillLight" type="DirectionalLight3D" parent="ModelPreview/SubViewport/Camera3D"]
+rotation_degrees = Vector3(-4, 34, 0)
+light_color = Color(0.86, 0.9, 1, 1)
+light_energy = 0.45
+light_specular = 0.15
+
+[node name="CharacterPlaceholder" type="Node3D" parent="ModelPreview/SubViewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.137, -1.3)
+
+[node name="Pedestal" type="MeshInstance3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.05, -3.4)
+mesh = SubResource("Mesh_pedestal")
+surface_material_override/0 = SubResource("Mat_pedestal")
+
+[node name="ModelHolder" type="Node3D" parent="ModelPreview/SubViewport/CharacterPlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.94, -3.4)
+
+[node name="PreviewFrame" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 320.0
+offset_top = 150.0
+offset_right = 1080.0
+offset_bottom = 880.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("SB_frame")
+
+[node name="PreviewHint" type="Label" parent="."]
+layout_mode = 0
+offset_left = 320.0
+offset_top = 892.0
+offset_right = 820.0
+offset_bottom = 924.0
+theme_override_colors/font_color = Color(0.55, 0.57, 0.63, 1)
+theme_override_font_sizes/font_size = 15
+text = "左键拖拽：旋转角色（地台固定不动）"
+
+[node name="NameTag" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 344.0
+offset_top = 686.0
+offset_right = 604.0
+offset_bottom = 752.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("SB_panel_dark")
+
+[node name="Label" type="Label" parent="NameTag"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.88, 1)
+theme_override_font_sizes/font_size = 26
+text = "角色名！"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnConfirm" type="Button" parent="."]
+layout_mode = 0
+offset_left = 856.0
+offset_top = 890.0
+offset_right = 1064.0
+offset_bottom = 962.0
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = SubResource("SB_slot_selected")
+theme_override_styles/hover = SubResource("SB_btn_hover")
+theme_override_styles/pressed = SubResource("SB_btn_pressed")
+theme_override_styles/focus = SubResource("SB_btn_hover")
+text = "确认"
+
+[node name="RightPanel" type="Control" parent="."]
+layout_mode = 0
+offset_left = 1140.0
+offset_top = 32.0
+offset_right = 1860.0
+offset_bottom = 600.0
+
+[node name="TabBar" type="HBoxContainer" parent="RightPanel"]
+layout_mode = 0
+offset_right = 720.0
+offset_bottom = 64.0
+theme_override_constants/separation = 10
+
+[node name="TabDetail" type="Button" parent="RightPanel/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("SB_tab_unselected")
+theme_override_styles/hover = SubResource("SB_btn_hover")
+theme_override_styles/pressed = SubResource("SB_tab_selected")
+theme_override_styles/focus = SubResource("SB_tab_unselected")
+text = "详细信息"
+
+[node name="TabTools" type="Button" parent="RightPanel/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("SB_tab_unselected")
+theme_override_styles/hover = SubResource("SB_btn_hover")
+theme_override_styles/pressed = SubResource("SB_tab_selected")
+theme_override_styles/focus = SubResource("SB_tab_unselected")
+text = "工具选择"
+
+[node name="DetailPage" type="HBoxContainer" parent="RightPanel"]
+layout_mode = 0
+offset_top = 82.0
+offset_right = 720.0
+offset_bottom = 568.0
+theme_override_constants/separation = 8
+
+[node name="PageLeft" type="PanelContainer" parent="RightPanel/DetailPage"]
+custom_minimum_size = Vector2(344, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("SB_page")
+
+[node name="VBox" type="VBoxContainer" parent="RightPanel/DetailPage/PageLeft"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderRow" type="HBoxContainer" parent="RightPanel/DetailPage/PageLeft/VBox"]
+custom_minimum_size = Vector2(0, 76)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AvatarFrame" type="PanelContainer" parent="RightPanel/DetailPage/PageLeft/VBox/HeaderRow"]
+custom_minimum_size = Vector2(76, 76)
+layout_mode = 2
+theme_override_styles/panel = SubResource("SB_slot")
+
+[node name="Label" type="Label" parent="RightPanel/DetailPage/PageLeft/VBox/HeaderRow/AvatarFrame"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.71, 0.75, 1)
+theme_override_font_sizes/font_size = 14
+text = "头像"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameCol" type="VBoxContainer" parent="RightPanel/DetailPage/PageLeft/VBox/HeaderRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="NameLabel" type="Label" parent="RightPanel/DetailPage/PageLeft/VBox/HeaderRow/NameCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.16, 0.15, 0.13, 1)
+theme_override_font_sizes/font_size = 26
+text = "角色名字"
+
+[node name="HpLabel" type="Label" parent="RightPanel/DetailPage/PageLeft/VBox/HeaderRow/NameCol"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.28, 0.24, 1)
+theme_override_font_sizes/font_size = 16
+text = "初始血量   100 / 100"
+
+[node name="Sep" type="HSeparator" parent="RightPanel/DetailPage/PageLeft/VBox"]
+layout_mode = 2
+
+[node name="TalentTitle" type="Label" parent="RightPanel/DetailPage/PageLeft/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.35, 0.12, 1)
+theme_override_font_sizes/font_size = 21
+text = "固有天赋"
+
+[node name="TalentText" type="Label" parent="RightPanel/DetailPage/PageLeft/VBox"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.21, 0.19, 1)
+theme_override_font_sizes/font_size = 16
+text = "・天赋一：占位文本，这里写该角色的固有天赋效果说明。
+・天赋二：占位文本，按实际需要增删条目。
+
+（正式文案替换后排版不变，可直接查改文字。）"
+autowrap_mode = 2
+
+[node name="TalentNote" type="Label" parent="RightPanel/DetailPage/PageLeft/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.52, 0.5, 0.46, 1)
+theme_override_font_sizes/font_size = 14
+text = "占位文本 · 可换成图标 + 说明"
+autowrap_mode = 2
+
+[node name="PageRight" type="PanelContainer" parent="RightPanel/DetailPage"]
+custom_minimum_size = Vector2(344, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("SB_page")
+
+[node name="VBox" type="VBoxContainer" parent="RightPanel/DetailPage/PageRight"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StoryTitle" type="Label" parent="RightPanel/DetailPage/PageRight/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.35, 0.12, 1)
+theme_override_font_sizes/font_size = 21
+text = "角色的事"
+
+[node name="StoryText" type="Label" parent="RightPanel/DetailPage/PageRight/VBox"]
+custom_minimum_size = Vector2(0, 380)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.21, 0.19, 1)
+theme_override_font_sizes/font_size = 16
+text = "这里放角色的背景故事文字。
+
+占位阶段先用假文字，方便确认排版效果；正式文案进来后直接替换这段内容即可，控件和排版不用改。"
+autowrap_mode = 2
+
+[node name="ToolsPage" type="HBoxContainer" parent="RightPanel"]
+visible = false
+layout_mode = 0
+offset_top = 82.0
+offset_right = 720.0
+offset_bottom = 568.0
+theme_override_constants/separation = 14
+
+[node name="ToolScroll" type="ScrollContainer" parent="RightPanel/ToolsPage"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.15
+horizontal_scroll_mode = 0
+
+[node name="ToolGrid" type="GridContainer" parent="RightPanel/ToolsPage/ToolScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 2
+
+[node name="Tool1" type="Button" parent="RightPanel/ToolsPage/ToolScroll/ToolGrid"]
+custom_minimum_size = Vector2(160, 160)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot_selected")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "工具 1"
+
+[node name="Tool2" type="Button" parent="RightPanel/ToolsPage/ToolScroll/ToolGrid"]
+custom_minimum_size = Vector2(160, 160)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "工具 2"
+
+[node name="Tool3" type="Button" parent="RightPanel/ToolsPage/ToolScroll/ToolGrid"]
+custom_minimum_size = Vector2(160, 160)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "工具 3"
+
+[node name="Tool4" type="Button" parent="RightPanel/ToolsPage/ToolScroll/ToolGrid"]
+custom_minimum_size = Vector2(160, 160)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "工具 4"
+
+[node name="Tool5" type="Button" parent="RightPanel/ToolsPage/ToolScroll/ToolGrid"]
+custom_minimum_size = Vector2(160, 160)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "工具 5"
+
+[node name="Tool6" type="Button" parent="RightPanel/ToolsPage/ToolScroll/ToolGrid"]
+custom_minimum_size = Vector2(160, 160)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("SB_slot")
+theme_override_styles/hover = SubResource("SB_slot_selected")
+theme_override_styles/pressed = SubResource("SB_slot_selected")
+theme_override_styles/focus = SubResource("SB_slot")
+text = "工具 6"
+
+[node name="ToolInfo" type="PanelContainer" parent="RightPanel/ToolsPage"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("SB_page")
+
+[node name="VBox" type="VBoxContainer" parent="RightPanel/ToolsPage/ToolInfo"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="InfoTitle" type="Label" parent="RightPanel/ToolsPage/ToolInfo/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.35, 0.12, 1)
+theme_override_font_sizes/font_size = 21
+text = "属性"
+
+[node name="InfoText" type="Label" parent="RightPanel/ToolsPage/ToolInfo/VBox"]
+custom_minimum_size = Vector2(0, 190)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.21, 0.19, 1)
+theme_override_font_sizes/font_size = 16
+text = "工具名称：占位文本
+
+类型：采集 / 建造 / 战斗
+
+作用：占位说明，写清这个工具能做什么。"
+autowrap_mode = 2
+
+[node name="AttackTitle" type="Label" parent="RightPanel/ToolsPage/ToolInfo/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.35, 0.12, 1)
+theme_override_font_sizes/font_size = 17
+text = "攻击力"
+
+[node name="AttackRow" type="HBoxContainer" parent="RightPanel/ToolsPage/ToolInfo/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AttackBar" type="ProgressBar" parent="RightPanel/ToolsPage/ToolInfo/VBox/AttackRow"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+value = 72.0
+show_percentage = false
+theme_override_styles/background = SubResource("SB_bar_bg")
+theme_override_styles/fill = SubResource("SB_bar_fill_atk")
+
+[node name="AttackVal" type="Label" parent="RightPanel/ToolsPage/ToolInfo/VBox/AttackRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.21, 0.19, 1)
+theme_override_font_sizes/font_size = 15
+text = "72 / 100"
+
+[node name="DurabilityTitle" type="Label" parent="RightPanel/ToolsPage/ToolInfo/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.35, 0.12, 1)
+theme_override_font_sizes/font_size = 17
+text = "耐久度"
+
+[node name="DurabilityRow" type="HBoxContainer" parent="RightPanel/ToolsPage/ToolInfo/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DurabilityBar" type="ProgressBar" parent="RightPanel/ToolsPage/ToolInfo/VBox/DurabilityRow"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+value = 55.0
+show_percentage = false
+theme_override_styles/background = SubResource("SB_bar_bg")
+theme_override_styles/fill = SubResource("SB_bar_fill_dur")
+
+[node name="DurabilityVal" type="Label" parent="RightPanel/ToolsPage/ToolInfo/VBox/DurabilityRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.21, 0.19, 1)
+theme_override_font_sizes/font_size = 15
+text = "55 / 100"
+
+[node name="TagTeam" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 1160.0
+offset_top = 630.0
+offset_right = 1330.0
+offset_bottom = 690.0
+theme_override_styles/panel = SubResource("SB_panel_dark")
+
+[node name="Label" type="Label" parent="TagTeam"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "队友选择"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TeamSlots" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 1140.0
+offset_top = 706.0
+offset_right = 1860.0
+offset_bottom = 940.0
+theme_override_constants/separation = 14
+
+[node name="P1" type="VBoxContainer" parent="TeamSlots"]
+custom_minimum_size = Vector2(168, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Frame" type="PanelContainer" parent="TeamSlots/P1"]
+custom_minimum_size = Vector2(168, 168)
+layout_mode = 2
+theme_override_styles/panel = SubResource("SB_slot_main")
+
+[node name="Label" type="Label" parent="TeamSlots/P1/Frame"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 32
+text = "…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerLabel" type="Label" parent="TeamSlots/P1"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "1 P（主控）"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="TeamSlots/P1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 15
+text = "选择中…"
+horizontal_alignment = 1
+
+[node name="P2" type="VBoxContainer" parent="TeamSlots"]
+custom_minimum_size = Vector2(168, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Frame" type="PanelContainer" parent="TeamSlots/P2"]
+custom_minimum_size = Vector2(168, 168)
+layout_mode = 2
+theme_override_styles/panel = SubResource("SB_slot")
+
+[node name="Label" type="Label" parent="TeamSlots/P2/Frame"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 32
+text = "…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerLabel" type="Label" parent="TeamSlots/P2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "2 P"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="TeamSlots/P2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.78, 0.36, 1)
+theme_override_font_sizes/font_size = 15
+text = "已确认"
+horizontal_alignment = 1
+
+[node name="P3" type="VBoxContainer" parent="TeamSlots"]
+custom_minimum_size = Vector2(168, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Frame" type="PanelContainer" parent="TeamSlots/P3"]
+custom_minimum_size = Vector2(168, 168)
+layout_mode = 2
+theme_override_styles/panel = SubResource("SB_slot")
+
+[node name="Label" type="Label" parent="TeamSlots/P3/Frame"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 32
+text = "…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerLabel" type="Label" parent="TeamSlots/P3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "3 P"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="TeamSlots/P3"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.78, 0.36, 1)
+theme_override_font_sizes/font_size = 15
+text = "已确认"
+horizontal_alignment = 1
+
+[node name="P4" type="VBoxContainer" parent="TeamSlots"]
+custom_minimum_size = Vector2(168, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Frame" type="PanelContainer" parent="TeamSlots/P4"]
+custom_minimum_size = Vector2(168, 168)
+layout_mode = 2
+theme_override_styles/panel = SubResource("SB_slot")
+
+[node name="Label" type="Label" parent="TeamSlots/P4/Frame"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 32
+text = "…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerLabel" type="Label" parent="TeamSlots/P4"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "4 P"
+horizontal_alignment = 1
+
+[node name="Status" type="Label" parent="TeamSlots/P4"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 15
+text = "选择中…"
+horizontal_alignment = 1
