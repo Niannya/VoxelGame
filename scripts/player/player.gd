@@ -65,9 +65,9 @@ func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
 
 func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	# 相机偏航后，屏幕上方不再等于世界 -Z，得把输入方向一起转过去。
-	# 相机挂在矿车上而不是玩家身上，所以这里取当前生效的相机，不写死路径。
-	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _camera_yaw())
+	# 移动按矿车轴向解释：车头方向为「前」，跟相机无关。
+	# 相机是固定侧视，屏幕上「上」指向墙壁，所以不能用屏幕轴。
+	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _move_yaw())
 
 	if dir.length_squared() > 0.001:
 		dir = dir.normalized()
@@ -97,9 +97,12 @@ func facing_dir() -> Vector3:
 	return Vector3(-sin(yaw), 0.0, -cos(yaw))
 
 
-func _camera_yaw() -> float:
-	var cam := get_viewport().get_camera_3d()
-	return cam.global_rotation.y if cam != null else 0.0
+func _move_yaw() -> float:
+	## 有平台就按平台的朝向走（矿车不会转，等价于世界轴）；
+	## 没绑平台时退回世界轴。
+	if _platform != null:
+		return _platform.global_rotation.y
+	return 0.0
 
 
 func _clamp_to_platform() -> void:

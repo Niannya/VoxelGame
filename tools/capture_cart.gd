@@ -32,6 +32,16 @@ func _ready() -> void:
 		(player.global_position - p0).length(),
 		(cam.global_position - c0).length()])
 
+	# 验证移动是沿矿车轴向（-Z 为前），不是屏幕轴
+	var pz: float = player.global_position.z
+	var px: float = player.global_position.x
+	Input.action_press("move_forward")
+	await get_tree().create_timer(0.4).timeout
+	Input.action_release("move_forward")
+	await get_tree().create_timer(0.25).timeout
+	print("按 W：dz=%+.2f（应为负）  dx=%+.2f（应接近 0）" % [
+		player.global_position.z - pz, player.global_position.x - px])
+
 	# 走到车头附近并面朝矿道深处（-Z），拍一张带高亮的图
 	var stand_z: float = cart.global_position.z - 3.0
 	player.global_position = Vector3(0.0, cart.global_position.y + 0.05, stand_z)
