@@ -21,9 +21,18 @@ func _run() -> void:
 	if flow._active_scene.name != "MinePlayground":
 		_fail("confirm did not enter the mine")
 		return
-	if flow._active_scene.get_node("Player/Visual/SelectedCharacter") == null:
-		_fail("selected character model was not carried into the mine")
+	# 2-player MVP：关卡里是 Player1 / Player2（同属 player 组），不再有单个 Player 节点
+	var players: Array = []
+	for p in get_nodes_in_group("player"):
+		if flow._active_scene.is_ancestor_of(p):
+			players.append(p)
+	if players.is_empty():
+		_fail("mine has no player instance")
 		return
+	for p in players:
+		if p.get_node_or_null("Visual/SelectedCharacter") == null:
+			_fail("selected character model was not carried into the mine (%s)" % p.name)
+			return
 
 	flow._active_scene.get_node("Mining").broken_by_type["gold"] = 3
 	flow._on_end_run()
