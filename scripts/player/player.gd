@@ -101,6 +101,8 @@ func _physics_process(delta: float) -> void:
 	var input := Input.get_vector(
 		action_prefix + "_left", action_prefix + "_right",
 		action_prefix + "_forward", action_prefix + "_back")
+	# 按屏幕轴向解释：W 往画面上方（远处那面墙），D 往画面右方（矿车前进方向）。
+	# 相机是固定的侧视，所以要用相机 yaw 把输入转进世界。
 	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _move_yaw())
 
 	if dir.length_squared() > 0.001:
@@ -132,11 +134,10 @@ func facing_dir() -> Vector3:
 
 
 func _move_yaw() -> float:
-	## 有平台就按平台的朝向走（矿车不会转，等价于世界轴）；
-	## 没绑平台时退回世界轴。
-	if _platform != null:
-		return _platform.global_rotation.y
-	return 0.0
+	## 移动跟着相机走：W = 画面上方，D = 画面右方。
+	## 相机挂在矿车上且固定不动，所以这就是稳定的屏幕方向。
+	var cam := get_viewport().get_camera_3d()
+	return cam.global_rotation.y if cam != null else 0.0
 
 
 func _clamp_to_platform() -> void:

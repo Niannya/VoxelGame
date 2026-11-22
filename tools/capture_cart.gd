@@ -20,14 +20,28 @@ func _ready() -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(DIR + "cart_blocked.png")
 
-	# 相机稳定性
+	# 相机稳定性 + 移动轴方向
 	var cam := get_viewport().get_camera_3d()
 	var c0: Vector3 = cam.global_position
+	p1.global_position.x = 0.0
+	await get_tree().create_timer(0.15).timeout
+	var p0: Vector3 = p1.global_position
+
+	Input.action_press("p1_forward")
+	await get_tree().create_timer(0.45).timeout
+	Input.action_release("p1_forward")
+	await get_tree().create_timer(0.3).timeout
+	print("按 W：dx=%+.2f（应为负=往远墙）  dz=%+.2f（应接近 0）" % [
+		p1.global_position.x - p0.x, p1.global_position.z - p0.z])
+
+	p0 = p1.global_position
 	Input.action_press("p1_right")
-	await get_tree().create_timer(0.5).timeout
+	await get_tree().create_timer(0.45).timeout
 	Input.action_release("p1_right")
 	await get_tree().create_timer(0.3).timeout
-	print("P1 走动后相机位移 %.2f（应为 0）" % (cam.global_position - c0).length())
+	print("按 D：dx=%+.2f（应接近 0）  dz=%+.2f（应为负=矿车前方）" % [
+		p1.global_position.x - p0.x, p1.global_position.z - p0.z])
+	print("相机位移 %.2f（应为 0）" % (cam.global_position - c0).length())
 
 	# 两人分别站到车头，面朝矿道
 	var stand_z: float = cart.global_position.z - 3.0
