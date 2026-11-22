@@ -3,7 +3,16 @@ extends Control
 ## 包含：页签切换 / 角色选择（箭头+框选+模型颜色+名称联动）/ 工具选择（框选+属性联动）/ 确认切换
 ## 程序接入后可整体替换或逐个函数改造，数据结构见下方常量。
 
-const CHAR_NAMES := ["角色名1", "角色名2", "角色名3", "角色名4", "角色名5", "角色名6"]
+const CHAR_NAMES := ["寸头哥", "白毛男", "粉毛女", "蓝毛男", "黄毛女", "黑毛男"]
+## 每个角色的大头照（左侧列表 + 详细信息页共用），与 CHAR_MODELS 顺序一一对应
+const CHAR_PORTRAITS := [
+	"res://assets/characters/portraits/char_01_cuntou.jpg",
+	"res://assets/characters/portraits/char_02_baimao.jpg",
+	"res://assets/characters/portraits/char_03_fenmao.jpg",
+	"res://assets/characters/portraits/char_04_lanmao.png",
+	"res://assets/characters/portraits/char_05_huangmao.jpg",
+	"res://assets/characters/portraits/char_06_hemao.jpg",
+]
 ## 每个角色的模型（glTF 2.0 二进制 .glb，Godot 会自动导入为场景）
 ## 换成正式模型时只改这里；模型会自动脚底贴地台、XZ 居中
 const CHAR_MODELS := [
@@ -43,6 +52,8 @@ const COLOR_STATUS_WAIT := Color(0.62, 0.63, 0.68)
 @onready var char_scroll: ScrollContainer = $CharList
 @onready var arrow: Label = $ArrowIndicator
 @onready var name_label: Label = $NameTag/Label
+@onready var detail_avatar: TextureRect = $RightPanel/DetailPage/PageLeft/VBox/HeaderRow/AvatarFrame/Avatar
+@onready var detail_name: Label = $RightPanel/DetailPage/PageLeft/VBox/HeaderRow/NameCol/NameLabel
 @onready var model_holder: Node3D = $ModelPreview/SubViewport/CharacterPlaceholder/ModelHolder
 @onready var preview: SubViewportContainer = $ModelPreview
 @onready var cam: Camera3D = $ModelPreview/SubViewport/Camera3D
@@ -139,6 +150,9 @@ func _apply_character(index: int) -> void:
 	_apply_model(index)
 
 	name_label.text = CHAR_NAMES[index]
+	# 详细信息页的大头照与名字跟着换
+	detail_avatar.texture = load(CHAR_PORTRAITS[index])
+	detail_name.text = CHAR_NAMES[index]
 
 
 ## ---- 模型展示：只让模型原地转台自转，相机与地台完全固定 ----
