@@ -73,6 +73,8 @@ func set_character_model(packed: PackedScene) -> void:
 			-(box.position.z + box.size.z * 0.5) * scale_factor
 		)
 	model.rotation.y = PI
+	# 手里那把镐子：挂在 arm.R 骨骼上，跟着角色朝向走
+	HeldTool.attach_to(model)
 	for child_name in ["Body", "Visor", "Helmet", "Lamp"]:
 		visual.get_node(child_name).visible = false
 

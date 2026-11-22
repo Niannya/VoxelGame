@@ -209,6 +209,8 @@ func _apply_model(index: int) -> void:
 		return
 	model_holder.add_child(inst)
 	_model_instance = inst
+	# 转台上也让角色拿着镐子（和局内同一套，挂在 arm.R 上）
+	HeldTool.attach_to(inst)
 
 	# 统一摆放：XZ 居中、脚底贴 ModelHolder 的 y=0（即地台顶面）
 	var box := _subtree_aabb(inst)
