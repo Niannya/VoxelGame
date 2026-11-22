@@ -58,7 +58,7 @@ mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(8.5, 12.3, 1.05)
+position = Vector3(3.689638, 6.151635, 2.898335)
 rotation_degrees = Vector3(-55, 83.27, 0)
 fov = 50.0
 near = 0.1
