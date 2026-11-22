@@ -1,7 +1,10 @@
 extends CharacterBody3D
-## 可移动的矿工占位单位。
-## 移动方向按屏幕方向解释：按 W 往画面深处走，A/D 左右平移。
-## 本节点自身不旋转（相机是它的子节点），只有 Visual 子节点转向。
+## 矿工角色。支持本地双人：用 action_prefix 区分按键（p1_* / p2_*）。
+## 移动按矿车轴向解释：车头方向为「前」，跟相机无关。
+## 本节点自身不旋转，只有 Visual 子节点转向。
+
+@export var action_prefix: String = "p1"
+@export var max_hp: int = 3
 
 @export var move_speed: float = 6.0
 @export var ground_acceleration: float = 55.0
@@ -14,15 +17,44 @@ extends CharacterBody3D
 @export var platform_path: NodePath
 @export var platform_margin: float = 0.6
 
+signal damaged(player: Node, hp: int)
+signal downed(player: Node)
+
+var hp: int
+var is_down := false
+
 @onready var visual: Node3D = $Visual
 
 var _platform: Node3D
 
 
 func _ready() -> void:
+	hp = max_hp
 	if not platform_path.is_empty():
 		_platform = get_node_or_null(platform_path)
 
+
+# ---------------------------------------------------------------- 受伤
+
+func take_hit(amount: int = 1) -> void:
+	if is_down:
+		return
+	hp = maxi(0, hp - amount)
+	damaged.emit(self, hp)
+	if hp == 0:
+		_go_down()
+
+
+func _go_down() -> void:
+	is_down = true
+	velocity = Vector3.ZERO
+	set_physics_process(false)
+	# 躺平：绕前进轴滚 90 度，顺便压暗
+	visual.rotation.z = PI * 0.5
+	downed.emit(self)
+
+
+# ---------------------------------------------------------------- 角色模型
 
 func set_character_model(packed: PackedScene) -> void:
 	if packed == null:
@@ -63,10 +95,12 @@ func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
 	return result
 
 
+# ---------------------------------------------------------------- 移动
+
 func _physics_process(delta: float) -> void:
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	# 移动按矿车轴向解释：车头方向为「前」，跟相机无关。
-	# 相机是固定侧视，屏幕上「上」指向墙壁，所以不能用屏幕轴。
+	var input := Input.get_vector(
+		action_prefix + "_left", action_prefix + "_right",
+		action_prefix + "_forward", action_prefix + "_back")
 	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _move_yaw())
 
 	if dir.length_squared() > 0.001:
@@ -82,7 +116,7 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor():
 		velocity.y = 0.0
-		if Input.is_action_just_pressed("jump"):
+		if Input.is_action_just_pressed(action_prefix + "_jump"):
 			velocity.y = jump_velocity
 	else:
 		velocity.y -= gravity * delta

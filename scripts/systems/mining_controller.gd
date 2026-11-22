@@ -1,11 +1,13 @@
 extends Node3D
-## 挖矿交互：高亮角色朝向前方一定距离内的矿块，按 F 挖掉。
-## 不再用鼠标瞄准 —— 鼠标只留给 UI。
+## 挖矿交互：每个玩家各自高亮「前方一定距离内」的矿块，按自己的挖掘键挖掉。
+## 鼠标不参与瞄准，只留给 UI。
 
 const LINE_COLOR := Color(1.0, 0.88, 0.32, 0.95)
 const FILL_COLOR := Color(1.0, 0.78, 0.20, 0.18)
+## 每个玩家最多同时亮起几个（一列 = 通道高度）
+const OUTLINES_PER_PLAYER := 6
 
-@export var player_path: NodePath
+@export var player_paths: Array[NodePath] = []
 @export var world_path: NodePath
 @export var hud_path: NodePath
 ## 朝前最多找几格。只够到眼前，想挖就得走到车头附近。
@@ -14,94 +16,112 @@ const FILL_COLOR := Color(1.0, 0.78, 0.20, 0.18)
 var total_broken: int = 0
 var broken_by_type: Dictionary = {}
 
-var _player: Node3D
+var _players: Array = []
 var _world: Node3D
 var _hud: CanvasLayer
-
-var _outlines: Array[Node3D] = []
-var _targets: Array[Vector3i] = []
-var _was_pressed := false
 var _block_size := Vector3.ONE
 var _line_mat: StandardMaterial3D
 var _fill_mat: StandardMaterial3D
 
+var _outlines: Array = []     # [玩家下标] -> Array[Node3D]
+var _targets: Array = []      # [玩家下标] -> Array[Vector3i]
+var _was_pressed: Array = []  # [玩家下标] -> bool
+
 
 func _ready() -> void:
-	_player = get_node_or_null(player_path)
 	_world = get_node_or_null(world_path)
 	_hud = get_node_or_null(hud_path)
-
 	if _world and _world.has_signal("block_broken"):
 		_world.block_broken.connect(_on_block_broken)
 	if _world and _world.has_method("block_size"):
 		_block_size = _world.block_size()
 
-	_build_outlines()
+	for p in player_paths:
+		var node := get_node_or_null(p)
+		if node == null:
+			continue
+		_players.append(node)
+		_targets.append([])
+		_was_pressed.append(false)
+		_outlines.append(_build_outline_set(_players.size() - 1))
+
 	# HUD 的 @onready 变量此时可能还没赋值，延后一帧再刷新
 	_refresh_hud.call_deferred()
 
 
 func _process(_delta: float) -> void:
-	_update_targets()
-	# 自己记录上一帧状态：比 is_action_just_pressed 稳，不会因为帧序漏掉一次按下
-	var pressed := Input.is_action_pressed("mine")
-	if pressed and not _was_pressed:
-		_mine_current()
-	_was_pressed = pressed
+	for i in _players.size():
+		_update_player(i)
 
 
-func targets() -> Array[Vector3i]:
-	return _targets
+func targets_of(index: int) -> Array:
+	return _targets[index] if index < _targets.size() else []
 
 
 # ---------------------------------------------------------------- 目标选取
 
-func _update_targets() -> void:
-	_targets.clear()
-	if _player == null or _world == null:
-		_hide_all()
+func _update_player(index: int) -> void:
+	var player: Node3D = _players[index]
+	var mine_action: String = player.action_prefix + "_mine"
+	var pressed := Input.is_action_pressed(mine_action)
+
+	if player.is_down:
+		_show(index, [])
+		_was_pressed[index] = pressed
 		return
 
 	var facing := Vector3.FORWARD
-	if _player.has_method("facing_dir"):
-		facing = _player.facing_dir()
+	if player.has_method("facing_dir"):
+		facing = player.facing_dir()
 
-	var found: Array = _world.targets_in_front(_player.global_position, facing, reach_cells)
-	for p in found:
-		_targets.append(p)
+	var found: Array[Vector3i] = []
+	if _world != null:
+		found = _world.targets_in_front(player.global_position, facing, reach_cells)
+	_targets[index] = found
+	_show(index, found)
 
-	for i in _outlines.size():
-		var holder := _outlines[i]
-		if i < _targets.size():
-			holder.visible = true
-			holder.global_position = Vector3(_targets[i]) * _block_size
-		else:
-			holder.visible = false
+	# 自己记录上一帧状态：比 is_action_just_pressed 稳，不会因帧序漏掉一次按下
+	if pressed and not _was_pressed[index]:
+		_mine(index)
+	_was_pressed[index] = pressed
 
 
-func _mine_current() -> void:
-	if _targets.is_empty():
+func _mine(index: int) -> void:
+	var list: Array = _targets[index]
+	if list.is_empty():
 		return
-	for pos in _targets.duplicate():
+	for pos in list.duplicate():
 		_world.break_block(pos)
-	_update_targets()
+	_update_player(index)
 
 
 # ---------------------------------------------------------------- 视觉
 
-func _build_outlines() -> void:
-	_line_mat = StandardMaterial3D.new()
-	_line_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_line_mat.albedo_color = LINE_COLOR
-	_line_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_line_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+func _show(index: int, list: Array) -> void:
+	var holders: Array = _outlines[index]
+	for n in holders.size():
+		var holder: Node3D = holders[n]
+		if n < list.size():
+			holder.visible = true
+			holder.global_position = Vector3(list[n]) * _block_size
+		else:
+			holder.visible = false
 
-	_fill_mat = StandardMaterial3D.new()
-	_fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_fill_mat.albedo_color = FILL_COLOR
-	_fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_fill_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_fill_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+func _build_outline_set(index: int) -> Array:
+	if _line_mat == null:
+		_line_mat = StandardMaterial3D.new()
+		_line_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_line_mat.albedo_color = LINE_COLOR
+		_line_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_line_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+
+		_fill_mat = StandardMaterial3D.new()
+		_fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_fill_mat.albedo_color = FILL_COLOR
+		_fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_fill_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_fill_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var wire := ImmediateMesh.new()
 	wire.surface_begin(Mesh.PRIMITIVE_LINES, _line_mat)
@@ -115,10 +135,10 @@ func _build_outlines() -> void:
 		wire.surface_add_vertex(c[e[1]])
 	wire.surface_end()
 
-	# 一格最多同时亮起「整列」的矿，预留几个就够
-	for n in 6:
+	var holders: Array = []
+	for n in OUTLINES_PER_PLAYER:
 		var holder := Node3D.new()
-		holder.name = "Outline%d" % n
+		holder.name = "P%dOutline%d" % [index + 1, n]
 		holder.scale = _block_size * 1.04
 		holder.visible = false
 		add_child(holder)
@@ -136,12 +156,8 @@ func _build_outlines() -> void:
 		fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		holder.add_child(fill)
 
-		_outlines.append(holder)
-
-
-func _hide_all() -> void:
-	for holder in _outlines:
-		holder.visible = false
+		holders.append(holder)
+	return holders
 
 
 # ---------------------------------------------------------------- 计数

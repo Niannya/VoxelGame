@@ -1,5 +1,5 @@
 extends CanvasLayer
-## 右下角计数面板：总数 + 各类矿石分项。
+## 右下角面板：推进距离 + 已挖总数 + 各类矿石分项。
 
 const TYPE_NAMES := {
 	"gold": "黄金",
@@ -8,20 +8,37 @@ const TYPE_NAMES := {
 	"emerald": "绿宝石",
 }
 
-@onready var _total: Label = $Panel/VBox/Total
+@onready var _head: Label = $Panel/VBox/Total
 @onready var _detail: Label = $Panel/VBox/Detail
+
+var _broken := 0
+var _by_type: Dictionary = {}
+var _distance := 0.0
 
 
 func update_counts(total: int, by_type: Dictionary) -> void:
-	_total.text = "已挖 %d" % total
+	_broken = total
+	_by_type = by_type
+	_render()
+
+
+func set_distance(metres: float) -> void:
+	_distance = metres
+	_render()
+
+
+func _render() -> void:
+	if _head == null:
+		return
+	_head.text = "%.0f 米 · 已挖 %d" % [_distance, _broken]
 
 	var parts: Array[String] = []
 	for key in ["gold", "quartz", "diamond", "emerald"]:
-		var n: int = by_type.get(key, 0)
+		var n: int = _by_type.get(key, 0)
 		if n > 0:
 			parts.append("%s %d" % [TYPE_NAMES[key], n])
 
 	if parts.is_empty():
-		_detail.text = "按 F 挖掘前方的矿"
+		_detail.text = "P1: WASD + F    P2: 方向键 + /"
 	else:
 		_detail.text = "  ".join(parts)

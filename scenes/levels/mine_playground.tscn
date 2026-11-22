@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/ui/mining_hud.tscn" id="2_hud"]
 [ext_resource type="Script" path="res://scripts/systems/mining_controller.gd" id="3_mining"]
 [ext_resource type="Script" path="res://scripts/world/voxel_world.gd" id="4_world"]
 [ext_resource type="PackedScene" path="res://scenes/world/mine_cart.tscn" id="5_cart"]
+[ext_resource type="Script" path="res://scripts/systems/run_manager.gd" id="6_run"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -41,14 +42,25 @@ script = ExtResource("4_world")
 position = Vector3(0, 0.5, 0)
 world_path = NodePath("../VoxelWorld")
 
-[node name="Player" parent="." instance=ExtResource("1_player")]
-position = Vector3(0, 0.55, 0)
+[node name="Player1" parent="." instance=ExtResource("1_player") groups=["player"]]
+position = Vector3(-1.5, 0.55, 2)
+action_prefix = "p1"
+platform_path = NodePath("../MineCart")
+
+[node name="Player2" parent="." instance=ExtResource("1_player") groups=["player"]]
+position = Vector3(1.5, 0.55, 2)
+action_prefix = "p2"
 platform_path = NodePath("../MineCart")
 
 [node name="MiningHUD" parent="." instance=ExtResource("2_hud")]
 
 [node name="Mining" type="Node3D" parent="."]
 script = ExtResource("3_mining")
-player_path = NodePath("../Player")
+player_paths = [NodePath("../Player1"), NodePath("../Player2")]
 world_path = NodePath("../VoxelWorld")
+hud_path = NodePath("../MiningHUD")
+
+[node name="RunManager" type="Node" parent="."]
+script = ExtResource("6_run")
+cart_path = NodePath("../MineCart")
 hud_path = NodePath("../MiningHUD")
