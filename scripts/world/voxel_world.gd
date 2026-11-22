@@ -7,6 +7,8 @@ extends Node3D
 
 ## 单格尺寸（宽 X / 高 Y / 长 Z）。不是正方体：一面矿 3×3 格 => 6 宽 × 3 高。
 const BLOCK := Vector3(2.0, 1.0, 1.0)
+## 背景板/尾墙砌到这一层，确保顶边永远在镜头之上
+const BACKDROP_TOP := 18
 ## 零缩放 + 挪到远处，等价于隐藏该实例
 var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9999, 0))
 
@@ -64,9 +66,10 @@ func _fill_grid() -> void:
 		for i in range(-hw - 1, hw + 2):
 			grid[Vector3i(i, -1, k)] = _pick(0.05)
 			grid[Vector3i(i, -2, k)] = _pick(0.05)
-		# 背景墙要高过镜头视线的落点，否则俯视时越过墙顶看到虚空，
+		# 背景墙是纯背景板，顶边必须远远高过镜头（相机只到 y≈6.6），
+		# 否则俯视时墙顶会卡在画面最上沿，上面露一条空的背景，
 		# 看起来就像墙顶被削掉一块。
-		for j in range(-2, h + 4):
+		for j in range(-2, BACKDROP_TOP):
 			grid[Vector3i(-hw - 1, j, k)] = _pick(0.11)
 
 	# 空腔之后整段堵死，玩家必须自己挖开
@@ -78,7 +81,7 @@ func _fill_grid() -> void:
 	# 空腔尾墙，避免回望看到虚空。高度必须和远侧墙一致（同样到 j = h），
 	# 否则两墙交界处会矮一层，从斜上方看就是一个缺口。
 	for i in range(-hw - 1, hw + 2):
-		for j in range(-2, h + 4):
+		for j in range(-2, BACKDROP_TOP):
 			grid[Vector3i(i, j, z_start + 1)] = _pick(0.08)
 
 

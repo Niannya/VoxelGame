@@ -44,7 +44,7 @@ func _ready() -> void:
 	print("相机位移 %.2f（应为 0）" % (cam.global_position - c0).length())
 
 	# 两人分别站到车头，面朝矿道
-	var stand_z: float = cart.global_position.z - 3.0
+	var stand_z: float = cart.global_position.z - 3.9   # 贴近车头，让第二层也在 reach 内（验证不会一次挖两层）
 	var deck_y: float = cart.global_position.y + 0.05
 	p1.global_position = Vector3(-1.5, deck_y, stand_z)
 	p2.global_position = Vector3(1.5, deck_y, stand_z)

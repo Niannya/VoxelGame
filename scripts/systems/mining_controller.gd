@@ -65,9 +65,21 @@ func _update_player(index: int) -> void:
 	var mine_action: String = player.action_prefix + "_mine"
 	var pressed := Input.is_action_pressed(mine_action)
 
+	_refresh_targets(index)
+
+	# 自己记录上一帧状态：比 is_action_just_pressed 稳，不会因帧序漏掉一次按下
+	if pressed and not _was_pressed[index]:
+		_mine(index)
+	_was_pressed[index] = pressed
+
+
+func _refresh_targets(index: int) -> void:
+	## 只重算高亮，不读按键 —— 挖完之后调用它，否则会立刻再判一次「刚按下」
+	var player: Node3D = _players[index]
+
 	if player.is_down:
+		_targets[index] = []
 		_show(index, [])
-		_was_pressed[index] = pressed
 		return
 
 	var facing := Vector3.FORWARD
@@ -80,11 +92,6 @@ func _update_player(index: int) -> void:
 	_targets[index] = found
 	_show(index, found)
 
-	# 自己记录上一帧状态：比 is_action_just_pressed 稳，不会因帧序漏掉一次按下
-	if pressed and not _was_pressed[index]:
-		_mine(index)
-	_was_pressed[index] = pressed
-
 
 func _mine(index: int) -> void:
 	var list: Array = _targets[index]
@@ -92,7 +99,7 @@ func _mine(index: int) -> void:
 		return
 	for pos in list.duplicate():
 		_world.break_block(pos)
-	_update_player(index)
+	_refresh_targets(index)
 
 
 # ---------------------------------------------------------------- 视觉
