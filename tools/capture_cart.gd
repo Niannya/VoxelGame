@@ -82,6 +82,17 @@ func _ready() -> void:
 	await get_tree().create_timer(1.2).timeout
 	print("P1 被咬后 HP = %d / 3" % p1.hp)
 
+	# 走深一点，复现「已挖 50+ / 11 米」时的画面
+	var deep_z: int = int(floor(cart.global_position.z)) - 2
+	for row in 26:
+		for i in range(-1, 2):
+			for j in range(0, 3):
+				get_node("MinePlayground/VoxelWorld").break_block(Vector3i(i, j, deep_z - row))
+	await get_tree().create_timer(7.0).timeout
+	print("走深后：矿车 z=%.2f" % cart.global_position.z)
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(DIR + "deep.png")
+
 	get_tree().quit(0)
 
 
