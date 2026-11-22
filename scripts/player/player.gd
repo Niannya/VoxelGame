@@ -1,18 +1,25 @@
 extends CharacterBody3D
-## 可移动的矿工占位单位。
-## 移动方向按屏幕方向解释：按 W 往画面深处走，A/D 左右平移。
-## 本节点自身不旋转（相机是它的子节点），只有 Visual 子节点转向。
+## 矿工角色。支持本地双人：用 action_prefix 区分按键（p1_* / p2_*）。
+## 移动按矿车轴向解释：车头方向为「前」，跟相机无关。
+## 本节点自身不旋转，只有 Visual 子节点转向。
+
+@export var action_prefix: String = "p1"
+@export var max_hp: int = 3
 
 @export var move_speed: float = 6.0
 @export var ground_acceleration: float = 55.0
 @export var ground_friction: float = 45.0
 @export var turn_speed: float = 14.0
 @export var gravity: float = 24.0
-## 起跳速度按「至少能跳上一格方块」定：v²/(2g) = 7.5²/48 ≈ 1.17 格
-@export var jump_velocity: float = 7.5
 ## 绑定移动平台后，玩家只能在平台顶面范围内活动
 @export var platform_path: NodePath
-@export var platform_margin: float = 0.42
+@export var platform_margin: float = 0.6
+
+signal damaged(player: Node, hp: int)
+signal downed(player: Node)
+
+var hp: int
+var is_down := false
 
 @onready var visual: Node3D = $Visual
 
@@ -20,9 +27,33 @@ var _platform: Node3D
 
 
 func _ready() -> void:
+	hp = max_hp
 	if not platform_path.is_empty():
 		_platform = get_node_or_null(platform_path)
 
+
+# ---------------------------------------------------------------- 受伤
+
+func take_hit(amount: int = 1) -> void:
+	if is_down:
+		return
+	hp = maxi(0, hp - amount)
+	damaged.emit(self, hp)
+	if hp == 0:
+		_go_down()
+
+
+func _go_down() -> void:
+	is_down = true
+	velocity = Vector3.ZERO
+	# 注意：不要关 _physics_process。倒地只是不响应输入，
+	# 但还得继续被矿车带着走（_clamp_to_platform 必须照常跑）。
+	visual.rotation.z = PI * 0.5
+	visual.position.y = 0.5
+	downed.emit(self)
+
+
+# ---------------------------------------------------------------- 角色模型
 
 func set_character_model(packed: PackedScene) -> void:
 	if packed == null:
@@ -34,7 +65,7 @@ func set_character_model(packed: PackedScene) -> void:
 	visual.add_child(model)
 	var box := _model_bounds(model)
 	if box.size.y > 0.0:
-		var scale_factor := 1.5 / box.size.y
+		var scale_factor := 2.0 / box.size.y   # 角色规格 1×1×2，模型按 2 高归一
 		model.scale = Vector3.ONE * scale_factor
 		model.position = Vector3(
 			-(box.position.x + box.size.x * 0.5) * scale_factor,
@@ -63,11 +94,27 @@ func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
 	return result
 
 
+# ---------------------------------------------------------------- 移动
+
 func _physics_process(delta: float) -> void:
-	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	# 相机偏航后，屏幕上方不再等于世界 -Z，得把输入方向一起转过去。
-	# 相机挂在矿车上而不是玩家身上，所以这里取当前生效的相机，不写死路径。
-	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _camera_yaw())
+	if is_down:
+		# 倒地：不吃输入，但仍然受重力、仍然被平台带走
+		velocity.x = move_toward(velocity.x, 0.0, ground_friction * delta)
+		velocity.z = move_toward(velocity.z, 0.0, ground_friction * delta)
+		if is_on_floor():
+			velocity.y = 0.0
+		else:
+			velocity.y -= gravity * delta
+		move_and_slide()
+		_clamp_to_platform()
+		return
+
+	var input := Input.get_vector(
+		action_prefix + "_left", action_prefix + "_right",
+		action_prefix + "_forward", action_prefix + "_back")
+	# 按屏幕轴向解释：W 往画面上方（远处那面墙），D 往画面右方（矿车前进方向）。
+	# 相机是固定的侧视，所以要用相机 yaw 把输入转进世界。
+	var dir := Vector3(input.x, 0.0, input.y).rotated(Vector3.UP, _move_yaw())
 
 	if dir.length_squared() > 0.001:
 		dir = dir.normalized()
@@ -82,8 +129,6 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor():
 		velocity.y = 0.0
-		if Input.is_action_just_pressed("jump"):
-			velocity.y = jump_velocity
 	else:
 		velocity.y -= gravity * delta
 
@@ -91,9 +136,19 @@ func _physics_process(delta: float) -> void:
 	_clamp_to_platform()
 
 
-func _camera_yaw() -> float:
+func facing_dir() -> Vector3:
+	## 模型正面朝 -Z，绕 Y 转 yaw 之后的正前方
+	var yaw := visual.rotation.y
+	return Vector3(-sin(yaw), 0.0, -cos(yaw))
+
+
+func _move_yaw() -> float:
+	## 移动严格沿矿车的两条水平轴：W 正对远墙（-X），D 正对矿车前方（-Z）。
+	## 相机是固定的侧视但带 83° 而非 90°，直接用相机 yaw 会带出 6.7° 的斜向分量，
+	## 所以这里把 yaw 吸附到最近的 90°，保证走的是纯轴向。
 	var cam := get_viewport().get_camera_3d()
-	return cam.global_rotation.y if cam != null else 0.0
+	var yaw := cam.global_rotation.y if cam != null else 0.0
+	return snappedf(yaw, PI * 0.5)
 
 
 func _clamp_to_platform() -> void:

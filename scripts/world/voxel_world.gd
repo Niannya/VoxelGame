@@ -5,7 +5,10 @@ extends Node3D
 ## 矿车进入矿层后，把「矿车前缘往后」那一段里没挖掉的方块直接隐藏（挖空式剖面），
 ## 免得挡住后面要挖的矿；前方待挖的矿始终保持实体。
 
-const BLOCK := 1.0
+## 单格尺寸（宽 X / 高 Y / 长 Z）。不是正方体：一面矿 3×3 格 => 6 宽 × 3 高。
+const BLOCK := Vector3(2.0, 1.0, 1.0)
+## 背景板/尾墙砌到这一层，确保顶边永远在镜头之上
+const BACKDROP_TOP := 18
 ## 零缩放 + 挪到远处，等价于隐藏该实例
 var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9999, 0))
 
@@ -14,7 +17,7 @@ var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9
 @export var interior_height: int = 3       # 填矿高度（块）—— 一面矿 3×3
 @export var tunnel_length: int = 40        # 纵深（块）
 @export var z_start: int = 6               # 起始空腔尾端 z
-@export var chamber_length: int = 7        # 起始空腔长度
+@export var chamber_length: int = 16        # 起始空腔长度
 @export var cutaway_behind: float = 9.0    # 矿车前缘往后多远内的未挖方块要隐藏
 @export var cutaway_min_height: int = 3    # 只隐藏这个高度以上的方块；矿体只有 3 格高，等于不裁
 ## +X 侧最后生成到哪一列。相机在 +X 侧往 -X 看，所以这一侧不砌墙，否则全被挡住。
@@ -63,7 +66,10 @@ func _fill_grid() -> void:
 		for i in range(-hw - 1, hw + 2):
 			grid[Vector3i(i, -1, k)] = _pick(0.05)
 			grid[Vector3i(i, -2, k)] = _pick(0.05)
-		for j in range(-2, h + 1):
+		# 背景墙是纯背景板，顶边必须远远高过镜头（相机只到 y≈6.6），
+		# 否则俯视时墙顶会卡在画面最上沿，上面露一条空的背景，
+		# 看起来就像墙顶被削掉一块。
+		for j in range(-2, BACKDROP_TOP):
 			grid[Vector3i(-hw - 1, j, k)] = _pick(0.11)
 
 	# 空腔之后整段堵死，玩家必须自己挖开
@@ -72,9 +78,10 @@ func _fill_grid() -> void:
 			for j in range(0, h):
 				grid[Vector3i(i, j, k)] = _pick(0.12)
 
-	# 空腔尾墙，避免回望看到虚空
+	# 空腔尾墙，避免回望看到虚空。高度必须和远侧墙一致（同样到 j = h），
+	# 否则两墙交界处会矮一层，从斜上方看就是一个缺口。
 	for i in range(-hw - 1, hw + 2):
-		for j in range(-2, h):
+		for j in range(-2, BACKDROP_TOP):
 			grid[Vector3i(i, j, z_start + 1)] = _pick(0.08)
 
 
@@ -113,7 +120,7 @@ func _make_multimesh(positions: Array, key: String) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	var box := BoxMesh.new()
-	box.size = Vector3(BLOCK, BLOCK, BLOCK)
+	box.size = BLOCK
 	box.material = _material(key)
 	mm.mesh = box
 	mm.instance_count = positions.size()
@@ -168,7 +175,10 @@ func update_cutaway(center: Vector3, half_depth: float) -> void:
 	for pos in grid:
 		if pos.y < cutaway_min_height:
 			continue
-		# 只对矿体做剖面，空腔和尾墙不动
+		# 只裁可挖的矿体。背景板、地板、尾墙是结构件，裁了会在墙上挖出跟着车走的洞。
+		if not is_breakable(pos):
+			continue
+		# 空腔里没有矿，别动
 		if pos.z >= chamber_end:
 			continue
 		var z := float(pos.z)
@@ -205,25 +215,83 @@ func hidden_count() -> int:
 
 # ---------------------------------------------------------------- 碰撞查询
 
-func cell_of(p: float) -> int:
-	return floori(p + 0.5)
+func cell_of(axis: int, v: float) -> int:
+	## 格子不是正方体，每个轴按自己的格宽换算。格 i 覆盖 [i*W - W/2, i*W + W/2)
+	return floori(v / BLOCK[axis] + 0.5)
 
 
-func _cells(a: float, b: float) -> Array[int]:
+func _cells(axis: int, a: float, b: float) -> Array[int]:
 	var out: Array[int] = []
-	for v in range(cell_of(a), cell_of(b - 0.0001) + 1):
+	for v in range(cell_of(axis, a), cell_of(axis, b - 0.0001) + 1):
 		out.append(v)
 	return out
 
 
 func is_blocked_at(center: Vector3, half_w: float, half_d: float,
 		y_min: float, y_max: float) -> bool:
-	for i in _cells(center.x - half_w, center.x + half_w):
-		for j in _cells(y_min, y_max):
-			for k in _cells(center.z - half_d, center.z + half_d):
+	for i in _cells(0, center.x - half_w, center.x + half_w):
+		for j in _cells(1, y_min, y_max):
+			for k in _cells(2, center.z - half_d, center.z + half_d):
 				if grid.has(Vector3i(i, j, k)):
 					return true
 	return false
+
+
+# ---------------------------------------------------------------- 可挖目标
+
+func block_size() -> Vector3:
+	return BLOCK
+
+
+func is_breakable(pos: Vector3i) -> bool:
+	## 背景墙、地板、空腔尾墙都是结构件，挖不了
+	if not grid.has(pos):
+		return false
+	if pos.y < 0:
+		return false
+	if pos.x <= -interior_half_width - 1:
+		return false
+	if pos.z >= z_start + 1:
+		return false
+	return true
+
+
+const SCAN_CELLS := 10
+
+
+func targets_in_front(from: Vector3, facing: Vector3, reach: float) -> Array[Vector3i]:
+	## 从玩家所在格沿朝向推进，取最近的一「片」可挖方块（同一列上所有高度）。
+	## reach 是世界距离（米）：按格子数算的话，玩家格子号在 0.5 米边界上会跳变，
+	## 够得着的范围会变成一段一段的，手感很怪。
+	var out: Array[Vector3i] = []
+	if facing.length_squared() < 0.0001:
+		return out
+
+	var d := facing.normalized()
+	var along_x := absf(d.x) >= absf(d.z)
+	var axis := 0 if along_x else 2
+	var dir := 1 if (d.x if along_x else d.z) > 0.0 else -1
+	var start := cell_of(axis, from[axis])
+	var fixed := cell_of(2 if along_x else 0, from[2 if along_x else 0])
+	var half := BLOCK[axis] * 0.5
+
+	for step in range(1, SCAN_CELLS + 1):
+		var c := start + dir * step
+		var slice: Array[Vector3i] = []
+		for j in range(0, interior_height):
+			var p := Vector3i(c, j, fixed) if along_x else Vector3i(fixed, j, c)
+			if is_breakable(p):
+				slice.append(p)
+		if slice.is_empty():
+			continue
+
+		# 玩家到这一片近面的距离
+		var gap: float = absf(from[axis] - float(c) * BLOCK[axis]) - half
+		if gap > reach:
+			return []
+		return slice
+
+	return out
 
 
 # ---------------------------------------------------------------- 拾取 / 破坏
@@ -234,10 +302,16 @@ func raycast_block(origin: Vector3, dir: Vector3, max_dist: float = 60.0) -> Dic
 		return {"hit": false}
 
 	var d := dir.normalized()
-	var o := origin + Vector3(0.5, 0.5, 0.5)
+	# 各轴格宽不同，先归一化到「格宽为 1」的空间再做标准 DDA；
+	# t 参数在这套变换下仍等于世界距离，所以 max_dist 不受影响。
+	var o := Vector3(
+		(origin.x + BLOCK.x * 0.5) / BLOCK.x,
+		(origin.y + BLOCK.y * 0.5) / BLOCK.y,
+		(origin.z + BLOCK.z * 0.5) / BLOCK.z)
+	var dq := Vector3(d.x / BLOCK.x, d.y / BLOCK.y, d.z / BLOCK.z)
 	var cell := Vector3i(floori(o.x), floori(o.y), floori(o.z))
-	var step := Vector3i(_axis_step(d.x), _axis_step(d.y), _axis_step(d.z))
-	var t_delta := Vector3(_inv_or_inf(d.x), _inv_or_inf(d.y), _inv_or_inf(d.z))
+	var step := Vector3i(_axis_step(dq.x), _axis_step(dq.y), _axis_step(dq.z))
+	var t_delta := Vector3(_inv_or_inf(dq.x), _inv_or_inf(dq.y), _inv_or_inf(dq.z))
 	var t_max := Vector3(
 		_first_t(o.x, cell.x, d.x), _first_t(o.y, cell.y, d.y), _first_t(o.z, cell.z, d.z))
 
@@ -299,7 +373,7 @@ func block_key(pos: Vector3i) -> String:
 
 
 func break_block(pos: Vector3i) -> bool:
-	if not grid.has(pos):
+	if not is_breakable(pos):
 		return false
 
 	var key: String = grid[pos]
