@@ -175,7 +175,10 @@ func update_cutaway(center: Vector3, half_depth: float) -> void:
 	for pos in grid:
 		if pos.y < cutaway_min_height:
 			continue
-		# 只对矿体做剖面，空腔和尾墙不动
+		# 只裁可挖的矿体。背景板、地板、尾墙是结构件，裁了会在墙上挖出跟着车走的洞。
+		if not is_breakable(pos):
+			continue
+		# 空腔里没有矿，别动
 		if pos.z >= chamber_end:
 			continue
 		var z := float(pos.z)
