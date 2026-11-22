@@ -5,7 +5,8 @@ extends Node3D
 ## 矿车进入矿层后，把「矿车前缘往后」那一段里没挖掉的方块直接隐藏（挖空式剖面），
 ## 免得挡住后面要挖的矿；前方待挖的矿始终保持实体。
 
-const BLOCK := 1.0
+## 单格尺寸（宽 X / 高 Y / 长 Z）。不是正方体：一面矿 3×3 格 => 6 宽 × 3 高。
+const BLOCK := Vector3(2.0, 1.0, 1.0)
 ## 零缩放 + 挪到远处，等价于隐藏该实例
 var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9999, 0))
 
@@ -14,7 +15,7 @@ var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9
 @export var interior_height: int = 3       # 填矿高度（块）—— 一面矿 3×3
 @export var tunnel_length: int = 40        # 纵深（块）
 @export var z_start: int = 6               # 起始空腔尾端 z
-@export var chamber_length: int = 7        # 起始空腔长度
+@export var chamber_length: int = 16        # 起始空腔长度
 @export var cutaway_behind: float = 9.0    # 矿车前缘往后多远内的未挖方块要隐藏
 @export var cutaway_min_height: int = 3    # 只隐藏这个高度以上的方块；矿体只有 3 格高，等于不裁
 ## +X 侧最后生成到哪一列。相机在 +X 侧往 -X 看，所以这一侧不砌墙，否则全被挡住。
@@ -113,7 +114,7 @@ func _make_multimesh(positions: Array, key: String) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	var box := BoxMesh.new()
-	box.size = Vector3(BLOCK, BLOCK, BLOCK)
+	box.size = BLOCK
 	box.material = _material(key)
 	mm.mesh = box
 	mm.instance_count = positions.size()
@@ -205,22 +206,23 @@ func hidden_count() -> int:
 
 # ---------------------------------------------------------------- 碰撞查询
 
-func cell_of(p: float) -> int:
-	return floori(p + 0.5)
+func cell_of(axis: int, v: float) -> int:
+	## 格子不是正方体，每个轴按自己的格宽换算。格 i 覆盖 [i*W - W/2, i*W + W/2)
+	return floori(v / BLOCK[axis] + 0.5)
 
 
-func _cells(a: float, b: float) -> Array[int]:
+func _cells(axis: int, a: float, b: float) -> Array[int]:
 	var out: Array[int] = []
-	for v in range(cell_of(a), cell_of(b - 0.0001) + 1):
+	for v in range(cell_of(axis, a), cell_of(axis, b - 0.0001) + 1):
 		out.append(v)
 	return out
 
 
 func is_blocked_at(center: Vector3, half_w: float, half_d: float,
 		y_min: float, y_max: float) -> bool:
-	for i in _cells(center.x - half_w, center.x + half_w):
-		for j in _cells(y_min, y_max):
-			for k in _cells(center.z - half_d, center.z + half_d):
+	for i in _cells(0, center.x - half_w, center.x + half_w):
+		for j in _cells(1, y_min, y_max):
+			for k in _cells(2, center.z - half_d, center.z + half_d):
 				if grid.has(Vector3i(i, j, k)):
 					return true
 	return false
@@ -234,10 +236,16 @@ func raycast_block(origin: Vector3, dir: Vector3, max_dist: float = 60.0) -> Dic
 		return {"hit": false}
 
 	var d := dir.normalized()
-	var o := origin + Vector3(0.5, 0.5, 0.5)
+	# 各轴格宽不同，先归一化到「格宽为 1」的空间再做标准 DDA；
+	# t 参数在这套变换下仍等于世界距离，所以 max_dist 不受影响。
+	var o := Vector3(
+		(origin.x + BLOCK.x * 0.5) / BLOCK.x,
+		(origin.y + BLOCK.y * 0.5) / BLOCK.y,
+		(origin.z + BLOCK.z * 0.5) / BLOCK.z)
+	var dq := Vector3(d.x / BLOCK.x, d.y / BLOCK.y, d.z / BLOCK.z)
 	var cell := Vector3i(floori(o.x), floori(o.y), floori(o.z))
-	var step := Vector3i(_axis_step(d.x), _axis_step(d.y), _axis_step(d.z))
-	var t_delta := Vector3(_inv_or_inf(d.x), _inv_or_inf(d.y), _inv_or_inf(d.z))
+	var step := Vector3i(_axis_step(dq.x), _axis_step(dq.y), _axis_step(dq.z))
+	var t_delta := Vector3(_inv_or_inf(dq.x), _inv_or_inf(dq.y), _inv_or_inf(dq.z))
 	var t_max := Vector3(
 		_first_t(o.x, cell.x, d.x), _first_t(o.y, cell.y, d.y), _first_t(o.z, cell.z, d.z))
 

@@ -1,65 +1,65 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://c34om5ww0fp58"]
 
-[ext_resource type="Script" path="res://scripts/world/mine_cart.gd" id="1_cart"]
+[ext_resource type="Script" uid="uid://c3joe1hcut3b3" path="res://scripts/world/mine_cart.gd" id="1_cart"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_deck"]
-size = Vector3(1.6, 0.5, 2.0)
+size = Vector3(6, 1, 9)
 
 [sub_resource type="BoxMesh" id="BoxMesh_deck"]
-size = Vector3(1.6, 0.5, 2.0)
+size = Vector3(6, 1, 9)
 
 [sub_resource type="StandardMaterial3D" id="Mat_deck"]
 albedo_color = Color(0.46, 0.34, 0.22, 1)
 roughness = 0.85
 
 [sub_resource type="BoxMesh" id="BoxMesh_rim"]
-size = Vector3(1.6, 0.18, 0.12)
-
-[sub_resource type="BoxMesh" id="BoxMesh_rim_z"]
-size = Vector3(0.12, 0.18, 2.0)
+size = Vector3(6, 0.18, 0.12)
 
 [sub_resource type="StandardMaterial3D" id="Mat_rim"]
 albedo_color = Color(0.28, 0.29, 0.33, 1)
 metallic = 0.7
-roughness = 0.40
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="BoxMesh_rim_z"]
+size = Vector3(0.12, 0.18, 9)
 
 [node name="MineCart" type="AnimatableBody3D"]
 script = ExtResource("1_cart")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 shape = SubResource("BoxShape3D_deck")
 
 [node name="Visual" type="Node3D" parent="."]
 
 [node name="Deck" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 mesh = SubResource("BoxMesh_deck")
 surface_material_override/0 = SubResource("Mat_deck")
 
 [node name="RimFront" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, -0.94)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, -4.44)
 mesh = SubResource("BoxMesh_rim")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="RimBack" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0.94)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 4.44)
 mesh = SubResource("BoxMesh_rim")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="RimLeft" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.74, 0.09, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.94, 0.09, 0)
 mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="RimRight" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.74, 0.09, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.94, 0.09, 0)
 mesh = SubResource("BoxMesh_rim_z")
 surface_material_override/0 = SubResource("Mat_rim")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(2.5, 3.8, 0.3)
-rotation_degrees = Vector3(-55, 72, 0)
+position = Vector3(8.5, 12.3, 1.05)
+rotation_degrees = Vector3(-55, 83.27, 0)
 fov = 50.0
 near = 0.1
 far = 200.0

@@ -4,9 +4,10 @@ extends AnimatableBody3D
 
 @export var world_path: NodePath
 @export var speed: float = 2.2
-@export var deck_half_width: float = 0.8
-@export var deck_half_depth: float = 1.0
-@export var clearance_height: float = 2.45
+@export var deck_half_width: float = 3.0
+@export var deck_half_depth: float = 4.5
+@export var body_below: float = 0.95
+@export var clearance_height: float = 1.95
 
 var blocked: bool = false
 
@@ -32,7 +33,7 @@ func _physics_process(delta: float) -> void:
 		next,
 		deck_half_width,
 		deck_half_depth,
-		global_position.y + 0.05,
+		global_position.y - body_below,
 		global_position.y + clearance_height)
 
 	if not blocked:
