@@ -134,10 +134,12 @@ func facing_dir() -> Vector3:
 
 
 func _move_yaw() -> float:
-	## 移动跟着相机走：W = 画面上方，D = 画面右方。
-	## 相机挂在矿车上且固定不动，所以这就是稳定的屏幕方向。
+	## 移动严格沿矿车的两条水平轴：W 正对远墙（-X），D 正对矿车前方（-Z）。
+	## 相机是固定的侧视但带 83° 而非 90°，直接用相机 yaw 会带出 6.7° 的斜向分量，
+	## 所以这里把 yaw 吸附到最近的 90°，保证走的是纯轴向。
 	var cam := get_viewport().get_camera_3d()
-	return cam.global_rotation.y if cam != null else 0.0
+	var yaw := cam.global_rotation.y if cam != null else 0.0
+	return snappedf(yaw, PI * 0.5)
 
 
 func _clamp_to_platform() -> void:
