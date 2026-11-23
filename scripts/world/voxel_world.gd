@@ -24,6 +24,11 @@ var _hidden_xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), Vector3(0, -9
 @export var near_edge_cell: int = 1
 
 signal block_broken(pos: Vector3i, key: String)
+signal mining_progressed(pos: Vector3i, progress: float)
+signal drop_spawned(pos: Vector3i, key: String, amount: int)
+
+## Shared work, owned by the grid rather than by an individual miner.
+var mining_work: Dictionary = {}
 
 var grid: Dictionary = {}                  # Vector3i -> String
 var _index: Dictionary = {}                # Vector3i -> int（MultiMesh 下标）
@@ -243,6 +248,47 @@ func block_size() -> Vector3:
 	return BLOCK
 
 
+func cell_to_global(cell: Vector3i) -> Vector3:
+	return to_global(Vector3(cell) * BLOCK)
+
+
+func hardness(cell: Vector3i) -> float:
+	match block_key(cell):
+		"gold": return 1.2
+		"quartz": return 1.4
+		"diamond": return 2.2
+		"emerald": return 2.6
+		_: return 1.0
+
+
+func mining_progress(cell: Vector3i) -> float:
+	return clampf(float(mining_work.get(cell, 0.0)) / hardness(cell), 0.0, 1.0)
+
+
+func apply_mining_work(cell: Vector3i, work: float) -> Dictionary:
+	if not is_finite(work) or work <= 0.0 or not is_breakable(cell):
+		return {"accepted": false}
+	var key := block_key(cell)
+	var accumulated: float = float(mining_work.get(cell, 0.0)) + work
+	mining_work[cell] = accumulated
+	var progress := clampf(accumulated / hardness(cell), 0.0, 1.0)
+	mining_progressed.emit(cell, progress)
+	var broken := false
+	if progress >= 1.0 - 0.00001:
+		broken = break_block(cell)
+	return {"accepted": true, "cell": cell, "key": key,
+		"progress": progress, "broken": broken}
+
+
+func visible_mining_face(origin: Vector3, cell: Vector3i) -> bool:
+	var target := Vector3(cell) * BLOCK
+	var eye := origin
+	eye.y = target.y
+	var delta := target - eye
+	var hit := raycast_block(eye, delta, delta.length() + 0.01)
+	return hit.get("hit", false) and hit.pos == cell
+
+
 func is_breakable(pos: Vector3i) -> bool:
 	## 背景墙、地板、空腔尾墙都是结构件，挖不了
 	if not grid.has(pos):
@@ -313,28 +359,33 @@ func raycast_block(origin: Vector3, dir: Vector3, max_dist: float = 60.0) -> Dic
 	var step := Vector3i(_axis_step(dq.x), _axis_step(dq.y), _axis_step(dq.z))
 	var t_delta := Vector3(_inv_or_inf(dq.x), _inv_or_inf(dq.y), _inv_or_inf(dq.z))
 	var t_max := Vector3(
-		_first_t(o.x, cell.x, d.x), _first_t(o.y, cell.y, d.y), _first_t(o.z, cell.z, d.z))
+		_first_t(o.x, cell.x, dq.x), _first_t(o.y, cell.y, dq.y), _first_t(o.z, cell.z, dq.z))
 
 	var normal := Vector3i.ZERO
+	var travelled := 0.0
 	for _i in 256:
 		if grid.has(cell):
-			return {"hit": true, "pos": cell, "normal": normal}
+			return {"hit": true, "pos": cell, "normal": normal,
+				"distance": travelled, "point": origin + d * travelled}
 
 		if t_max.x < t_max.y and t_max.x < t_max.z:
 			if t_max.x > max_dist:
 				break
+			travelled = t_max.x
 			cell.x += step.x
 			t_max.x += t_delta.x
 			normal = Vector3i(-step.x, 0, 0)
 		elif t_max.y < t_max.z:
 			if t_max.y > max_dist:
 				break
+			travelled = t_max.y
 			cell.y += step.y
 			t_max.y += t_delta.y
 			normal = Vector3i(0, -step.y, 0)
 		else:
 			if t_max.z > max_dist:
 				break
+			travelled = t_max.z
 			cell.z += step.z
 			t_max.z += t_delta.z
 			normal = Vector3i(0, 0, -step.z)
@@ -384,6 +435,8 @@ func break_block(pos: Vector3i) -> bool:
 	_hidden.erase(pos)
 	grid.erase(pos)
 	_index.erase(pos)
+	mining_work.erase(pos)
 
 	block_broken.emit(pos, key)
+	drop_spawned.emit(pos, key, 1)
 	return true

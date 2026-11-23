@@ -26,12 +26,10 @@ const CHAR_MODELS := [
 ]
 
 const TOOL_DATA := [
-	{"name": "采集镐", "type": "采集", "desc": "占位说明：敲击矿石与晶簇，产出基础材料。", "atk": 35, "dur": 80},
-	{"name": "建造锤", "type": "建造", "desc": "占位说明：放置与加固体素方块，修筑工事。", "atk": 20, "dur": 95},
-	{"name": "木弓", "type": "战斗", "desc": "占位说明：远程射击，消耗箭矢。", "atk": 72, "dur": 55},
-	{"name": "火把", "type": "照明", "desc": "占位说明：照亮黑暗区域，驱散部分敌怪。", "atk": 12, "dur": 40},
-	{"name": "背包", "type": "功能", "desc": "占位说明：扩容携带格，提升负重上限。", "atk": 0, "dur": 70},
-	{"name": "水壶", "type": "功能", "desc": "占位说明：储存饮水，缓解口渴值消耗。", "atk": 0, "dur": 60},
+	{"name": "普通矿镐", "type": "采矿", "desc": "均衡的入门矿镐。每 0.6 秒出手一次。", "atk": 1, "dur": 1.0},
+	{"name": "高效矿镐", "type": "采矿", "desc": "破岩更强，出手稍慢。每 0.8 秒出手一次。", "atk": 1, "dur": 2.0},
+	{"name": "钢刃", "type": "近战", "desc": "攻击力高，破岩效率低。每 0.5 秒出手一次。", "atk": 3, "dur": 0.2},
+	{"name": "矿用手枪", "type": "远程", "desc": "射程 6 格，普通子弹不能开采矿石。", "atk": 2, "dur": 0.0},
 ]
 
 const COLOR_STATUS_OK := Color(0.55, 0.78, 0.36)
@@ -94,6 +92,10 @@ var _tool_slot_normal: StyleBox
 
 
 func _ready() -> void:
+	$TagTeam/Label.text = "单人试玩"
+	$TeamSlots/P1/PlayerLabel.text = "当前角色"
+	for slot_name in ["P2", "P3", "P4"]:
+		$TeamSlots.get_node(slot_name).hide()
 	tab_detail.pressed.connect(_show_tab.bind(0))
 	tab_tools.pressed.connect(_show_tab.bind(1))
 	btn_confirm.pressed.connect(_toggle_confirm)
@@ -107,7 +109,10 @@ func _ready() -> void:
 	for i in char_slots.size():
 		char_slots[i].pressed.connect(_select_character.bind(i))
 	for i in tool_slots.size():
-		tool_slots[i].pressed.connect(_select_tool.bind(i))
+		tool_slots[i].visible = i < TOOL_DATA.size()
+		if i < TOOL_DATA.size():
+			tool_slots[i].text = TOOL_DATA[i].name
+			tool_slots[i].pressed.connect(_select_tool.bind(i))
 
 	_apply_tool(selected_tool)
 	preview.gui_input.connect(_on_preview_gui_input)
@@ -305,9 +310,11 @@ func _apply_tool(index: int) -> void:
 	var data: Dictionary = TOOL_DATA[index]
 	info_text.text = "工具名称：%s\n\n类型：%s\n\n作用：%s" % [data["name"], data["type"], data["desc"]]
 	attack_bar.value = data["atk"]
-	attack_val.text = "%d / 100" % data["atk"]
+	attack_bar.max_value = 3.0
+	attack_val.text = "%d" % data["atk"]
 	durability_bar.value = data["dur"]
-	durability_val.text = "%d / 100" % data["dur"]
+	durability_bar.max_value = 2.0
+	durability_val.text = "%.1f 格/秒" % data["dur"]
 
 
 ## ---- 确认 / 取消确认：按钮文字与 1P 状态同步 ----

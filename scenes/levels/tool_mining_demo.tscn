@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/levels/mine_playground.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/tool_mining_demo.gd" id="2"]
+
+[node name="ToolMiningDemo" instance=ExtResource("1")]
+script = ExtResource("2")
+
+[node name="MineCart" parent="." index="3"]
+position = Vector3(0, 0.5, -3)
+
+[node name="Player1" parent="." index="4"]
+position = Vector3(0, 0.55, -6.7)

@@ -875,7 +875,7 @@ text = "72 / 100"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.45, 0.35, 0.12, 1)
 theme_override_font_sizes/font_size = 17
-text = "耐久度"
+text = "破岩效率"
 
 [node name="DurabilityRow" type="HBoxContainer" parent="RightPanel/ToolsPage/ToolInfo/VBox"]
 layout_mode = 2

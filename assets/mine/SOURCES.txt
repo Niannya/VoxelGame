@@ -1,0 +1,8 @@
+用户附件与工程资源对应关系；GLB 原字节不变。
+
+矿车车轮.glb -> cart_wheel.glb | SHA256 1b6370090836aaa3f8039dbc5b4947b529735f0abb486adbb610acfe14e5fb06
+矿车车体.glb -> cart_body.glb | SHA256 3ce06633b7ff50f935852562ccdbca464f6bd0f1dccb219322b7b0476add6992
+铁轨.glb -> track.glb | SHA256 18f2e67427236ba3513574a296779046b12b5c765346c97f512db0bcbec2503a
+铁轨仅钢轨.glb -> track_rails.glb | SHA256 6cb83611f109c87beaccaa769c31e6c67ded2f00bbd2c165dda246822eb1ce65
+铁轨仅轨枕.glb -> track_sleepers.glb | SHA256 bf13a7fa6f2e2e289b070b45f949b69a7b3388f412a90f404295c9e98b16daa2
+圆拱形熔炉.glb -> furnace.glb | SHA256 6285c4e2fb22602b87c742f41c0d977fb67095c9e3177d7386087bd981f07f9c

@@ -56,7 +56,8 @@ func _start_game() -> void:
 	var mine := MINE_PLAYGROUND.instantiate()
 	_active_scene = mine
 	add_child(mine)
-	# 双人：P1 用选中的角色，P2 顺延取下一个（暂时占位，等 P2 也能自己选再改）
+	mine.get_node("Mining").set_tool(0, mini(selected_tool, 3))
+	# Single-player prototype: carry the selected character into the mine.
 	var players := get_tree().get_nodes_in_group("player")
 	for i in players.size():
 		var node := players[i]
@@ -87,6 +88,8 @@ func _on_end_run() -> void:
 		"tool": selected_tool,
 		"ore_counts": mining.broken_by_type.duplicate(),
 		"distance": maxi(0, roundi(3.0 - cart.global_position.z)),
+		"inventory_counts": _active_scene.get_node("Player1/Inventory").counts(),
+		"furnace_count": mining.furnace.total_absorbed if is_instance_valid(mining.furnace) else 0,
 	}
 	_show_result.call_deferred(result_data)
 
@@ -97,6 +100,8 @@ func _show_result(result_data: Dictionary) -> void:
 	result.run_character_index = int(result_data.character)
 	result.run_distance = int(result_data.distance)
 	result.run_ore_counts = result_data.ore_counts
+	result.run_inventory_counts = result_data.inventory_counts
+	result.run_furnace_count = int(result_data.furnace_count)
 	_active_scene = result
 	add_child(result)
 	result.back_requested.connect(func() -> void: _show_character_select.call_deferred())

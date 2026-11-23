@@ -1,0 +1,59 @@
+胡闹矿洞 单人鼠标采矿与矿物拾取
+
+运行
+使用 Godot 导入仓库根目录 project.godot，等待资源导入完成。
+打开 scenes/levels/tool_mining_demo.tscn 后按 F6，进入单人试采场景。
+按 F5 保留选角 → 矿洞 → 结束本局 → 结算 → 返回的完整原型流程。
+实际验收环境为 Godot 4.7.2 stable，Forward+ / D3D12。工程基于原有 Godot 4.6 项目，未单独验收 4.6 二进制。
+
+操作
+WASD 移动，鼠标指向矿块，按住左键开采。
+金框为可开采目标；红框和状态文字提示距离或遮挡；上下层直接用光标选择。
+Q 切换工具，R 切换范围挥镐的横向/竖向。
+E 拾取附近高级矿石，可长按连续拾取；Tab 打开/关闭矿物背包。
+演示天赋：F 获得范围挥镐20秒；装备钢刃时改为长刀15秒。G 获得黄金大开采20秒。
+F8 重置演示。演示不刷怪，清完通行截面后矿车继续前进。
+
+矿物去向
+stone_a、stone_b：普通岩石，开采后短暂弹出，沿弧线吸向随车移动的熔炉；抵达入口后计数并消失。
+gold、quartz、diamond、emerald：黄金、石英、钻石、绿宝石，保留落地回弹动画，靠近后按 E 拾取。
+背包为8格，同类矿石每格最多99个；可在 ore_inventory.gd 调整。
+拾取先原子检查容量并入包，再播放飞向角色的动画。满包时提示原因，矿物原地保留。
+普通石头不占矿物背包，高级矿石不会自动被熔炉吸走。拾取和入炉均有防重保护。
+矿物背包暂时独立于工具快捷栏；金币兑换、主动投炉及交易没有在本轮实现。
+结算区分已开采、石头入炉、背包高级矿石，不把未拾取掉落算进入包。
+
+实现入口
+resources/tools/*.tres：工具的攻击力、破岩效率、出手间隔和范围参数。
+scripts/tools/tool_operator.gd：P03，按鼠标命中或角色朝向生成统一操作快照，维护独立冷却和天赋时间。
+scripts/systems/mining_resolver.gd：P04，逐格应用破岩量；网格仍由 voxel_world.gd 维护。
+scripts/world/voxel_world.gd：矿格、共享破岩进度、射线查询和掉落信号。
+scripts/systems/tool_mining_controller.gd：输入、预览、P03/P04接口、掉落生成及HUD同步。
+scripts/world/mineral_drop.gd：弹出、旋转、重力、碰撞、回弹、熔炉吸附及拾取飞行动画。
+scripts/world/mineral_furnace.gd：移动入口、普通石头分类、实际入炉计数与发光反馈。
+scripts/items/ore_inventory.gd：堆叠、容量、原子添加与快照。
+scripts/items/loot_collector.gd：拾取距离、最近掉落选择、E键和提示。
+scripts/items/mineral_catalog.gd：普通/高级矿石分类、名字与颜色。
+scripts/ui/mining_hud.gd：鼠标目标状态、入炉计数、拾取提示及Tab背包。
+
+数值为初始测试值
+普通矿镐：攻击1，间隔0.6秒，破岩效率1.0/秒。
+高效矿镐：攻击1，间隔0.8秒，破岩效率2.0/秒。
+钢刃：攻击3，间隔0.5秒，破岩效率0.2/秒；手枪：攻击2，间隔0.6秒，射程6，不能破岩。
+每击破岩量 = 破岩效率 × 出手间隔。石头硬度1.0、黄金1.2、石英1.4、钻石2.2、绿宝石2.6。
+
+美术与范围
+用户提供的六份GLB放在 assets/mine/，文件映射及SHA256校验见该目录 SOURCES.txt。
+GLB原始字节未改动；场景容器适配原点、朝向和尺寸，降低护栏以便观察选块与掉落。
+角色复用现有顶点色体素模型。武器外观仍为简单占位网格，没有正式骨骼动作。
+旧 mining_controller.gd 保留作原型参考，mine_playground.tscn 已改用 tool_mining_controller.gd。
+P05可监听 operation_requested 并关闭 resolve_prototype_combat，接管正式战斗结算。
+
+验证
+godot --headless --path . --script res://tools/test_tool_mining.gd
+  TOOL_MINING_OK：48项检查，覆盖目标层、射线、鼠标输入、单人、各种范围、冷却与分类流转。
+godot --headless --path . --script res://tools/test_loot_routing.gd
+  LOOT_ROUTING_OK：32项检查，覆盖吸附、移动入口、防重、堆叠、满包不丢物、距离、倒地和背包开关。
+godot --headless --path . --script res://tools/test_game_flow.gd
+  GAME_FLOW_OK：选角、单人矿洞、入炉/背包数据传递、结算与返回。
+已实际渲染并检查石头入炉、黄金拾取入包和背包界面。

@@ -91,6 +91,8 @@ var _portrait_views: Array[SubViewport] = []
 var run_character_index: int = -1
 var run_distance: int = -1
 var run_ore_counts: Dictionary = {}
+var run_inventory_counts: Dictionary = {}
+var run_furnace_count: int = 0
 var _players: Array = []
 var _ores: Array = []
 
@@ -105,7 +107,10 @@ func _ready() -> void:
 	_players = PLAYERS.duplicate(true)
 	_ores = ORES.duplicate(true)
 	if run_character_index >= 0:
-		_players[2]["char"] = clampi(run_character_index, 0, CHAR_MODELS.size() - 1)
+		_players = [{"rank": 1, "name": "矿工", "tag": "单人", "coin": 0,
+			"death": 0, "char": clampi(run_character_index, 0, CHAR_MODELS.size() - 1), "is_main": true}]
+		for row in range(2, 5):
+			get_node("Board/Margin/VBox/Row%d" % row).hide()
 	if run_distance >= 0:
 		_ores.clear()
 		for template in RUN_ORE_TYPES:
@@ -167,6 +172,10 @@ func _portrait_style(is_main: bool) -> StyleBoxFlat:
 
 func _count_run_ores() -> int:
 	var total := 0
+	if run_distance >= 0:
+		for count in run_ore_counts.values():
+			total += int(count)
+		return total
 	for ore in _ores:
 		total += int(ore.count)
 	return total
@@ -175,7 +184,11 @@ func _fill_team() -> void:
 	$TeamPanel/Margin/VBox/LvRow/LvPill/Value.text = "Lv. %d" % TEAM.cart_level
 	$TeamPanel/Margin/VBox/DistRow/Value.text = "%d m" % (run_distance if run_distance >= 0 else TEAM.distance)
 	if run_distance >= 0:
-		$TeamPanel/Margin/VBox/BestRow/Label.text = "本局已挖矿石  %d 个" % _count_run_ores()
+		$TeamPanel/Margin/VBox/OreHead/Label.text = "本局高级矿石开采"
+		var carried := 0
+		for count in run_inventory_counts.values():
+			carried += int(count)
+		$TeamPanel/Margin/VBox/BestRow/Label.text = "已开采 %d · 石头入炉 %d · 背包高级矿 %d" % [_count_run_ores(), run_furnace_count, carried]
 	else:
 		$TeamPanel/Margin/VBox/BestRow/Label.text = "前进距离最高记录  %d m" % TEAM.best
 

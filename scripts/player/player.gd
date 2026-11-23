@@ -24,10 +24,24 @@ var is_down := false
 @onready var visual: Node3D = $Visual
 
 var _platform: Node3D
+var _tool_pivot: Node3D
+var _swing: Tween
+const OreBag = preload("res://scripts/items/ore_inventory.gd")
+const Collector = preload("res://scripts/items/loot_collector.gd")
 
 
 func _ready() -> void:
 	hp = max_hp
+	var inventory := Node.new()
+	inventory.name = "Inventory"
+	inventory.set_script(OreBag)
+	add_child(inventory)
+	var collector := Node.new()
+	collector.name = "LootCollector"
+	collector.set_script(Collector)
+	collector.miner = self
+	collector.inventory = inventory
+	add_child(collector)
 	if not platform_path.is_empty():
 		_platform = get_node_or_null(platform_path)
 
@@ -73,8 +87,21 @@ func set_character_model(packed: PackedScene) -> void:
 			-(box.position.z + box.size.z * 0.5) * scale_factor
 		)
 	model.rotation.y = PI
+	_set_vertex_material(model)
 	for child_name in ["Body", "Visor", "Helmet", "Lamp"]:
 		visual.get_node(child_name).visible = false
+
+
+func _set_vertex_material(node: Node) -> void:
+	if node is MeshInstance3D:
+		var material := ShaderMaterial.new()
+		var shader := Shader.new()
+		shader.code = "shader_type spatial; render_mode unshaded, cull_disabled; void fragment() { ALBEDO = COLOR.rgb * (0.72 + 0.28 * max(dot(normalize(NORMAL), normalize(vec3(-0.3, 0.6, 1.0))), 0.0)); }"
+		material.shader = shader
+		node.material_override = material
+		node.lod_bias = 128.0
+	for child in node.get_children():
+		_set_vertex_material(child)
 
 
 func _model_bounds(node: Node, xform := Transform3D.IDENTITY) -> AABB:
@@ -140,6 +167,45 @@ func facing_dir() -> Vector3:
 	## 模型正面朝 -Z，绕 Y 转 yaw 之后的正前方
 	var yaw := visual.rotation.y
 	return Vector3(-sin(yaw), 0.0, -cos(yaw))
+
+
+func face_target(point: Vector3, delta: float) -> void:
+	var direction := point - global_position
+	direction.y = 0.0
+	if direction.length_squared() > 0.001:
+		var yaw := atan2(-direction.x, -direction.z)
+		visual.rotation.y = lerp_angle(visual.rotation.y, yaw, minf(1.0, turn_speed * delta))
+
+
+func show_tool_swing(definition: Resource) -> void:
+	if _tool_pivot == null:
+		_tool_pivot = Node3D.new()
+		_tool_pivot.position = Vector3(0.6, 1.1, -0.3)
+		visual.add_child(_tool_pivot)
+		var grip := MeshInstance3D.new()
+		var handle := BoxMesh.new()
+		handle.size = Vector3(0.09, 0.09, 0.9)
+		grip.mesh = handle
+		grip.position.z = -0.35
+		_tool_pivot.add_child(grip)
+		var head := MeshInstance3D.new()
+		head.name = "Head"
+		var metal := BoxMesh.new()
+		metal.size = Vector3(0.65, 0.13, 0.15)
+		head.mesh = metal
+		head.position.z = -0.78
+		_tool_pivot.add_child(head)
+	if _swing != null and _swing.is_valid():
+		_swing.kill()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = definition.tint
+	(_tool_pivot.get_node("Head") as MeshInstance3D).material_override = mat
+	_tool_pivot.visible = true
+	_tool_pivot.rotation.x = -0.8
+	_swing = create_tween()
+	_swing.tween_property(_tool_pivot, "rotation:x", 0.85, minf(0.15, definition.interval * 0.25))
+	_swing.tween_property(_tool_pivot, "rotation:x", 0.0, minf(0.2, definition.interval * 0.35))
+	_swing.tween_callback(func() -> void: _tool_pivot.visible = false)
 
 
 func _move_yaw() -> float:
