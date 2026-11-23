@@ -4,35 +4,17 @@ signal confirmed_requested(character_index: int, tool_index: int)
 ## 包含：页签切换 / 角色选择（箭头+框选+模型颜色+名称联动）/ 工具选择（框选+属性联动）/ 确认切换
 ## 程序接入后可整体替换或逐个函数改造，数据结构见下方常量。
 
-const CHAR_NAMES := ["寸头哥", "白毛男", "粉毛女", "蓝毛男", "黄毛女", "黑毛男"]
+## 角色数据（名字 / 头像 / 模型）统一在 scripts/data/character_roster.gd，
+## 角色选择、局内、结算共用同一份；这三个只是本脚本内的短别名，换角色不用改界面。
+const CHAR_NAMES := CharacterRoster.NAMES
 ## 每个角色的大头照（左侧列表 + 详细信息页共用），与 CHAR_MODELS 顺序一一对应
-const CHAR_PORTRAITS := [
-	"res://assets/characters/portraits/char_01_cuntou.jpg",
-	"res://assets/characters/portraits/char_02_baimao.jpg",
-	"res://assets/characters/portraits/char_03_fenmao.jpg",
-	"res://assets/characters/portraits/char_04_lanmao.png",
-	"res://assets/characters/portraits/char_05_huangmao.jpg",
-	"res://assets/characters/portraits/char_06_hemao.jpg",
-]
-## 每个角色的模型（glTF 2.0 二进制 .glb，Godot 会自动导入为场景）
-## 换成正式模型时只改这里；模型会自动脚底贴地台、XZ 居中
-const CHAR_MODELS := [
-	"res://assets/characters/char_01_cuntou.glb",
-	"res://assets/characters/char_02_baimao.glb",
-	"res://assets/characters/char_03_fenmao.glb",
-	"res://assets/characters/char_04_lanmao.glb",
-	"res://assets/characters/char_05_huangmao.glb",
-	"res://assets/characters/char_06_hemao.glb",
-]
+const CHAR_PORTRAITS := CharacterRoster.PORTRAITS
+## 每个角色的模型（rigged：带 8 骨骼 + Idle/Select/工具 clip 的 glb）
+## 模型实例化后会自动脚底贴地台、XZ 居中
+const CHAR_MODELS := CharacterRoster.MODELS
 
-const TOOL_DATA := [
-	{"name": "采集镐", "type": "采集", "desc": "占位说明：敲击矿石与晶簇，产出基础材料。", "atk": 35, "dur": 80},
-	{"name": "建造锤", "type": "建造", "desc": "占位说明：放置与加固体素方块，修筑工事。", "atk": 20, "dur": 95},
-	{"name": "木弓", "type": "战斗", "desc": "占位说明：远程射击，消耗箭矢。", "atk": 72, "dur": 55},
-	{"name": "火把", "type": "照明", "desc": "占位说明：照亮黑暗区域，驱散部分敌怪。", "atk": 12, "dur": 40},
-	{"name": "背包", "type": "功能", "desc": "占位说明：扩容携带格，提升负重上限。", "atk": 0, "dur": 70},
-	{"name": "水壶", "type": "功能", "desc": "占位说明：储存饮水，缓解口渴值消耗。", "atk": 0, "dur": 60},
-]
+## 6 把起始工具（攻击力 / 挖矿效率 / 动画 clip）统一在 scripts/data/tool_table.gd
+const TOOL_DATA := ToolTable.TOOLS
 
 const COLOR_STATUS_OK := Color(0.55, 0.78, 0.36)
 const COLOR_STATUS_WAIT := Color(0.62, 0.63, 0.68)
@@ -219,12 +201,24 @@ func _apply_model(index: int) -> void:
 			-(box.position.z + box.size.z * 0.5)
 		)
 
-	# 呼吸效果：给模型套一个顶点着色器材质（脚底锁定，只动上半身）
-	_apply_breathing(inst, box)
+	# 新模型由骨骼驱动。切换时先播各自的亮相动作，再循环待机。
+	_breath_mat = null
+	var anim := inst.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if anim != null and anim.has_animation("Idle"):
+		anim.get_animation("Idle").loop_mode = Animation.LOOP_LINEAR
+		anim.animation_finished.connect(_on_model_animation_finished.bind(anim))
+		anim.play("Select" if anim.has_animation("Select") else "Idle")
+	else:
+		_apply_breathing(inst, box)
 
 	# 换角色时把视角复位到正面
 	_rot_y = 0.0
 	_apply_rotation()
+
+
+func _on_model_animation_finished(name: StringName, player: AnimationPlayer) -> void:
+	if is_instance_valid(player) and name == &"Select" and player.has_animation("Idle"):
+		player.play("Idle")
 
 
 ## 给模型的所有 MeshInstance3D 换上呼吸材质。

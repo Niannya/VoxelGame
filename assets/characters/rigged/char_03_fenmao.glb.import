@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dr120uutg6usk"
-path="res://.godot/imported/char_05_huangmao.glb-d5b0bec3eb63d35a83db21129ba0af5e.scn"
+uid="uid://cfu87p4wg3x6s"
+path="res://.godot/imported/char_03_fenmao.glb-e48a83a966ce966806a10c7fcc94c8ac.scn"
 
 [deps]
 
-source_file="res://assets/characters/char_05_huangmao.glb"
-dest_files=["res://.godot/imported/char_05_huangmao.glb-d5b0bec3eb63d35a83db21129ba0af5e.scn"]
+source_file="res://assets/characters/rigged/char_03_fenmao.glb"
+dest_files=["res://.godot/imported/char_03_fenmao.glb-e48a83a966ce966806a10c7fcc94c8ac.scn"]
 
 [params]
 

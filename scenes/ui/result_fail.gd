@@ -45,21 +45,11 @@ const ORES := [
 		"desc": "炽热的红色宝石，仿佛内部藏着火焰。是本局挖到的最珍贵矿石，值得炫耀！"},
 ]
 
-const RUN_ORE_TYPES := [
-	{"key": "gold", "name": "黄金", "color": Color(0.96, 0.79, 0.32), "desc": "本局挖出的黄金。"},
-	{"key": "quartz", "name": "石英", "color": Color(0.73, 0.81, 0.90), "desc": "本局挖出的石英。"},
-	{"key": "diamond", "name": "钻石", "color": Color(0.42, 0.77, 0.86), "desc": "本局挖出的钻石。"},
-	{"key": "emerald", "name": "绿宝石", "color": Color(0.40, 0.78, 0.50), "desc": "本局挖出的绿宝石。"},
-]
+## 本局真数据用到的矿石表：与局内共用 OreTable（8 种，含价值/颜色/文案）
+const RUN_ORE_TYPES := OreTable.ORES
 
-const CHAR_MODELS := [
-	"res://assets/characters/char_01_cuntou.glb",
-	"res://assets/characters/char_02_baimao.glb",
-	"res://assets/characters/char_03_fenmao.glb",
-	"res://assets/characters/char_04_lanmao.glb",
-	"res://assets/characters/char_05_huangmao.glb",
-	"res://assets/characters/char_06_hemao.glb",
-]
+## 角色模型路径的唯一来源（scripts/data/character_roster.gd，与角色选择、局内共用）
+const CHAR_MODELS := CharacterRoster.MODELS
 
 const ICON_SCRIPT := preload("res://scenes/ui/parts/result_icon.gd")
 
@@ -91,6 +81,8 @@ var _portrait_views: Array[SubViewport] = []
 var run_character_index: int = -1
 var run_distance: int = -1
 var run_ore_counts: Dictionary = {}
+## 本局赚到的金币（<0 表示没有真数据，用 PLAYERS 里的占位值）
+var run_coins: int = -1
 var _players: Array = []
 var _ores: Array = []
 
@@ -106,6 +98,9 @@ func _ready() -> void:
 	_ores = ORES.duplicate(true)
 	if run_character_index >= 0:
 		_players[2]["char"] = clampi(run_character_index, 0, CHAR_MODELS.size() - 1)
+	# 本机玩家那一行吃本局真金币（单人时就是全部收入）
+	if run_coins >= 0:
+		_players[2]["coin"] = run_coins
 	if run_distance >= 0:
 		_ores.clear()
 		for template in RUN_ORE_TYPES:
@@ -175,7 +170,8 @@ func _fill_team() -> void:
 	$TeamPanel/Margin/VBox/LvRow/LvPill/Value.text = "Lv. %d" % TEAM.cart_level
 	$TeamPanel/Margin/VBox/DistRow/Value.text = "%d m" % (run_distance if run_distance >= 0 else TEAM.distance)
 	if run_distance >= 0:
-		$TeamPanel/Margin/VBox/BestRow/Label.text = "本局已挖矿石  %d 个" % _count_run_ores()
+		var coin_part := ("· 金币 %d" % run_coins) if run_coins >= 0 else ""
+		$TeamPanel/Margin/VBox/BestRow/Label.text = "本局已挖矿石  %d 个  %s" % [_count_run_ores(), coin_part]
 	else:
 		$TeamPanel/Margin/VBox/BestRow/Label.text = "前进距离最高记录  %d m" % TEAM.best
 

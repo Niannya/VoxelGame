@@ -4,14 +4,7 @@ extends Node
 const CHARACTER_SELECT := preload("res://scenes/ui/character_select.tscn")
 const MINE_PLAYGROUND := preload("res://scenes/levels/mine_playground.tscn")
 const RESULT_FAIL := preload("res://scenes/ui/result_fail.tscn")
-const CHARACTER_MODELS := [
-	"res://assets/characters/char_01_cuntou.glb",
-	"res://assets/characters/char_02_baimao.glb",
-	"res://assets/characters/char_03_fenmao.glb",
-	"res://assets/characters/char_04_lanmao.glb",
-	"res://assets/characters/char_05_huangmao.glb",
-	"res://assets/characters/char_06_hemao.glb",
-]
+const CHARACTER_MODELS := CharacterRoster.MODELS
 
 var selected_character := 0
 var selected_tool := 0
@@ -63,7 +56,7 @@ func _start_game() -> void:
 		if not node.has_method("set_character_model"):
 			continue
 		var pick := (selected_character + i) % CHARACTER_MODELS.size()
-		node.set_character_model(load(CHARACTER_MODELS[pick]) as PackedScene)
+		node.set_character_model(load(CHARACTER_MODELS[pick]) as PackedScene, selected_tool if i == 0 else 0)
 	_add_end_run_button()
 
 

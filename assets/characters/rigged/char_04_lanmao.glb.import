@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://74ihgqenmvoo"
-path="res://.godot/imported/char_06_hemao.glb-8e80b2cd7b046f341aa79a43410648b7.scn"
+uid="uid://mxi7nv0wwhc6"
+path="res://.godot/imported/char_04_lanmao.glb-1611e8021528d6adf5a59e391a852b25.scn"
 
 [deps]
 
-source_file="res://assets/characters/char_06_hemao.glb"
-dest_files=["res://.godot/imported/char_06_hemao.glb-8e80b2cd7b046f341aa79a43410648b7.scn"]
+source_file="res://assets/characters/rigged/char_04_lanmao.glb"
+dest_files=["res://.godot/imported/char_04_lanmao.glb-1611e8021528d6adf5a59e391a852b25.scn"]
 
 [params]
 

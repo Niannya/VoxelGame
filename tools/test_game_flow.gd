@@ -21,7 +21,7 @@ func _run() -> void:
 	if flow._active_scene.name != "MinePlayground":
 		_fail("confirm did not enter the mine")
 		return
-	if flow._active_scene.get_node("Player/Visual/SelectedCharacter") == null:
+	if flow._active_scene.get_node_or_null("Player1/Visual/SelectedCharacter") == null:
 		_fail("selected character model was not carried into the mine")
 		return
 
