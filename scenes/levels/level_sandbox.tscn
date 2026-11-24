@@ -1,0 +1,97 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://modules/level/level_root.gd" id="1_root"]
+[ext_resource type="Script" path="res://modules/level/grid/voxel_grid.gd" id="2_grid"]
+[ext_resource type="Script" path="res://modules/level/grid/voxel_renderer.gd" id="3_renderer"]
+[ext_resource type="Script" path="res://modules/level/core/level_state.gd" id="4_state"]
+[ext_resource type="Script" path="res://modules/level/track/track_service.gd" id="5_track"]
+[ext_resource type="Script" path="res://modules/level/track/stability_service.gd" id="6_stability"]
+[ext_resource type="Script" path="res://modules/level/cart/cart_controller.gd" id="7_cart"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="8_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/mining_hud.tscn" id="9_hud"]
+[ext_resource type="Script" path="res://scripts/systems/mining_controller.gd" id="10_mining"]
+[ext_resource type="Resource" path="res://assets/level/level_art_theme.tres" id="11_art"]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.018, 0.02, 0.028, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.2, 0.22, 0.3, 1)
+ambient_light_energy = 0.85
+tonemap_mode = 2
+glow_enabled = true
+glow_intensity = 0.7
+glow_bloom = 0.15
+ssao_enabled = true
+ssao_radius = 2.0
+ssao_intensity = 2.2
+fog_enabled = true
+fog_light_color = Color(0.05, 0.06, 0.09, 1)
+fog_density = 0.011
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_deck"]
+size = Vector3(2.8, 0.5, 3.6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_deck"]
+size = Vector3(2.8, 0.5, 3.6)
+
+[node name="LevelSandbox" type="Node3D"]
+script = ExtResource("1_root")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-62, -38, 0)
+light_color = Color(0.62, 0.72, 1, 1)
+light_energy = 0.45
+shadow_enabled = true
+
+[node name="LevelState" type="Node" parent="."]
+script = ExtResource("4_state")
+
+[node name="Grid" type="Node" parent="."]
+script = ExtResource("2_grid")
+
+[node name="Renderer" type="Node3D" parent="."]
+script = ExtResource("3_renderer")
+grid_path = NodePath("../Grid")
+art = ExtResource("11_art")
+
+[node name="Track" type="Node" parent="."]
+script = ExtResource("5_track")
+grid_path = NodePath("../Grid")
+
+[node name="Stability" type="Node" parent="."]
+script = ExtResource("6_stability")
+grid_path = NodePath("../Grid")
+state_path = NodePath("../LevelState")
+
+[node name="MineCart" type="AnimatableBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3)
+script = ExtResource("7_cart")
+grid_path = NodePath("../Grid")
+track_path = NodePath("../Track")
+state_path = NodePath("../LevelState")
+
+[node name="Collision" type="CollisionShape3D" parent="MineCart"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+shape = SubResource("BoxShape3D_deck")
+
+[node name="Visual" type="Node3D" parent="MineCart"]
+
+[node name="Deck" type="MeshInstance3D" parent="MineCart/Visual"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+mesh = SubResource("BoxMesh_deck")
+
+[node name="Player" parent="." instance=ExtResource("8_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 3)
+platform_path = NodePath("../MineCart")
+
+[node name="MiningHUD" parent="." instance=ExtResource("9_hud")]
+
+[node name="Mining" type="Node3D" parent="."]
+script = ExtResource("10_mining")
+camera_path = NodePath("../Player/Camera3D")
+world_path = NodePath("..")
+hud_path = NodePath("../MiningHUD")
