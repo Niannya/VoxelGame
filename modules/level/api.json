@@ -1,0 +1,115 @@
+{
+  "module": "level",
+  "owner": "关卡",
+  "docs": {
+    "human": "Docs/Dev/关卡接口契约.md",
+    "gaps": "Docs/Dev/关卡缺口清单.md",
+    "art": "Docs/Dev/美术资产空位清单.md",
+    "rules": "modules/level/AGENTS.md"
+  },
+  "scene": {
+    "path": "res://scenes/levels/level_sandbox.tscn",
+    "root_type": "LevelRoot",
+    "nodes": {
+      "Grid": "LevelVoxelGrid",
+      "Renderer": "LevelVoxelRenderer",
+      "LevelState": "LevelState",
+      "Track": "LevelTrackService",
+      "Stability": "LevelStabilityService",
+      "MineCart": "LevelCartController"
+    }
+  },
+  "signals": {
+    "Grid": {
+      "cell_changed": ["Vector3i"],
+      "block_damaged": ["Vector3i", "float"],
+      "block_broken": ["Vector3i", "StringName", "Array"],
+      "cell_cleared": ["Vector3i"]
+    },
+    "LevelState": {
+      "progress_changed": ["int", "int"],
+      "depth_changed": ["int", "int"],
+      "descend_started": ["int", "int"]
+    },
+    "MineCart": {
+      "cart_blocked": ["StopReason"],
+      "cart_resumed": [],
+      "cart_moved": ["float"]
+    },
+    "Track": {
+      "track_placed": ["Vector3i"],
+      "track_reclaimed": ["Vector3i"]
+    },
+    "Stability": {
+      "segment_activated": ["int"],
+      "segment_critical": ["int", "float"],
+      "segment_collapsed": ["int"]
+    },
+    "Economy": {
+      "coins_changed": ["int"],
+      "sale_settled": ["int", "Array"]
+    },
+    "EventRouter": {
+      "event_triggered": ["int", "Dictionary"]
+    }
+  },
+  "methods": {
+    "LevelVoxelGrid": {
+      "apply_mining": {
+        "args": ["Array[Vector3i]", "Dictionary", "Node"],
+        "returns": "Array[Dictionary]",
+        "note": "P04 唯一挖掘入口；power 形如 {stone: 1.0}"
+      },
+      "raycast_block": {"args": ["Vector3", "Vector3", "float"], "returns": "Dictionary"},
+      "is_blocked_at": {"args": ["Vector3", "float", "float", "float", "float"], "returns": "bool"},
+      "solid_cells_in": {"args": ["Vector3", "float", "float", "float", "float"], "returns": "Array[Vector3i]"},
+      "has_block": {"args": ["Vector3i"], "returns": "bool"},
+      "block_id_at": {"args": ["Vector3i"], "returns": "StringName"},
+      "cell_depth": {"args": ["Vector3i"], "returns": "int"},
+      "progress_ratio": {"args": ["Vector3i"], "returns": "float"}
+    },
+    "LevelState": {
+      "advance_to": {"args": ["float"], "returns": "void", "note": "只有 L04 可以调"},
+      "set_origin": {"args": ["float"], "returns": "void", "note": "只有 L04 开局调一次，把里程 0 点绑定到矿车出生位置"},
+      "floor_length": {"args": ["int"], "returns": "int"},
+      "descent_point": {"args": ["int"], "returns": "int"},
+      "depth_at_z": {"args": ["float"], "returns": "int"},
+      "floor_progress": {"args": [], "returns": "int"}
+    },
+    "LevelVoxelRenderer": {
+      "display_state": {"args": ["Vector3i"], "returns": "Dictionary", "note": "无头模式下 MultiMesh 不回读，测试请查这里"},
+      "rebuild": {"args": [], "returns": "void"}
+    },
+    "LevelCartController": {
+      "blocking_cells": {"args": [], "returns": "Array[Vector3i]"},
+      "current_reason_text": {"args": [], "returns": "String"}
+    },
+    "LevelTrackService": {
+      "is_track_ready": {"args": ["Vector3", "float", "float"], "returns": "bool"},
+      "reclaim": {"args": ["Vector3i"], "returns": "bool"}
+    },
+    "LevelStabilityService": {
+      "value_of": {"args": ["int"], "returns": "float"},
+      "coverage_ratio": {"args": ["int"], "returns": "float"},
+      "add_pillar": {"args": ["Vector3i"], "returns": "bool"}
+    },
+    "LevelEconomyService": {
+      "sell": {"args": ["Array"], "returns": "int"},
+      "try_spend": {"args": ["int"], "returns": "bool"}
+    }
+  },
+  "enums": {
+    "LevelCartController.StopReason": ["NONE", "ROCK", "RAIL", "DEBRIS", "DESCEND"]
+  },
+  "invariants": [
+    "每格最多结算 1 件基础掉落，只在达到硬度阈值那一次",
+    "is_boundary 的方块永远不会被破坏",
+    "里程只能通过 LevelState.advance_to 增加，且只增不减",
+    "渲染层只订阅信号，不写数据",
+    "改 class_name 或信号参数属于破坏性变更，必须同步本文件与 Docs/Dev/关卡接口契约.md"
+  ],
+  "tests": {
+    "command": "godot --headless --path . res://tests/level/level_selftest.tscn",
+    "pass_marker": "LEVEL SELFTEST: PASS"
+  }
+}

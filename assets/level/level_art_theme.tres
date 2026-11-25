@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="LevelArtTheme" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://modules/level/art/level_art_theme.gd" id="1_theme"]
+
+[resource]
+script = ExtResource("1_theme")
+block_meshes = {}
+block_materials = {}
+crack_meshes = []
